@@ -18,13 +18,14 @@ export type SidebarItem = {
 export default function Sidebar({
   brand = "Budaya Insights",
   items,
-}: {
+}: Readonly<{
   brand?: string;
   items: SidebarItem[];
-}) {
+}>) {
   const pathname = usePathname();
   const search = useSearchParams();
   const [open, setOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
 
   // cek aktif: path + query (kalau ada)
   const isActive = (href: string) => {
@@ -40,12 +41,45 @@ export default function Sidebar({
 
   useEffect(() => setOpen(false), [pathname, search?.toString()]);
 
+  // restore/save collapsed state (desktop)
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("sidebar:collapsed");
+      if (saved != null) setCollapsed(saved === "1");
+    } catch { }
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("sidebar:collapsed", collapsed ? "1" : "0");
+    } catch { }
+  }, [collapsed]);
+
   const List = (
-    <aside className="w-64 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-full">
-      <div className="h-14 flex items-center px-4 border-b border-gray-200 dark:border-gray-800">
-        <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+    <aside
+      className={[
+        "fixed left-0 top-0 z-30 shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 h-screen transition-all duration-300 ease-in-out",
+        collapsed ? "w-16" : "w-64",
+      ].join(" ")}
+    >
+      <div className="h-14 flex items-center justify-between px-2 lg:px-3 border-b border-gray-200 dark:border-gray-800">
+        <span
+          className={[
+            "text-sm font-semibold text-gray-900 dark:text-gray-100 truncate",
+            collapsed ? "sr-only" : "",
+          ].join(" ")}
+        >
           {brand}
         </span>
+        {/* collapse toggle (desktop only) */}
+        <button
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          onClick={() => setCollapsed((v) => !v)}
+          className="hidden lg:inline-flex items-center justify-center rounded-md border hover:cursor-poin border-gray-300 dark:border-gray-700 px-2 py-1.5 text-xs text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/80 hover:cursor-pointer"
+          title={collapsed ? "Expand" : "Collapse"}
+        >
+          {collapsed ? <Icons.ChevronRight className="h-4 w-4" /> : <Icons.ChevronLeft className="h-4 w-4" />}
+        </button>
       </div>
       <nav className="p-2 space-y-1">
         {items.map((item) => {
@@ -56,14 +90,22 @@ export default function Sidebar({
               key={item.href}
               href={item.href}
               className={[
-                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm",
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
+                collapsed ? "justify-center" : "",
                 active
                   ? "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/80 hover:text-gray-900 dark:hover:text-gray-100",
               ].join(" ")}
+              title={collapsed ? item.label : undefined}
             >
-              {IconComp ? <IconComp className="h-4 w-4" /> : null}
-              <span>{item.label}</span>
+              {IconComp ? (
+                <IconComp className="h-4 w-4 shrink-0" />
+              ) : (
+                <span className="h-4 w-4 shrink-0 rounded-sm bg-gray-200 dark:bg-gray-700 text-[10px] font-medium grid place-items-center text-gray-700 dark:text-gray-200">
+                  {item.label.charAt(0)}
+                </span>
+              )}
+              <span className={[collapsed ? "sr-only" : "", "whitespace-nowrap"].join(" ")}>{item.label}</span>
             </Link>
           );
         })}
@@ -89,12 +131,17 @@ export default function Sidebar({
       </div>
 
       {/* Desktop */}
-      <div className="hidden lg:block h-full">{List}</div>
+      <div className="hidden lg:block">{List}</div>
 
       {/* Mobile drawer */}
       {open && (
         <div className="lg:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          <button
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setOpen(false)}
+            onKeyDown={(e) => e.key === 'Escape' && setOpen(false)}
+            aria-label="Close sidebar"
+          />
           <div className="absolute inset-y-0 left-0 w-72 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 shadow-lg flex flex-col">
             <div className="h-14 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800">
               <span className="text-sm font-semibold">{brand}</span>
