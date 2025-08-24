@@ -6,7 +6,7 @@ export const metadata = {
   description: "Dashboards Admin & Premium + API Docs",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="id" suppressHydrationWarning>
       <body className="theme-transition">
