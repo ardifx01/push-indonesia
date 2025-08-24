@@ -1,8 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* dark variant via class .dark di <html> */
 @custom-variant dark (&:is(.dark *));
 
+/* Theme tokens (oklch) */
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -78,6 +80,7 @@
   --sidebar-ring: oklch(0.705 0.015 286.067);
 }
 
+/* tema gelap */
 .dark {
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
@@ -112,11 +115,32 @@
   --sidebar-ring: oklch(0.552 0.016 285.938);
 }
 
+/* bikin komponen native ikut tema */
+:root { color-scheme: light; }
+.dark  { color-scheme: dark; }
+
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
+  * { @apply border-border outline-ring/50; }
+  body { @apply bg-background text-foreground; }
+}
+
+/* (opsional) transisi lembut saat ganti tema */
+.theme-transition * {
+  transition-property: background-color, color, border-color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
+
+/* (opsional) scrollbar tema */
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-track { background: var(--muted); }
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+.dark *::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 20%);
+  background-clip: padding-box;
 }
