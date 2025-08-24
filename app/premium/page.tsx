@@ -103,21 +103,19 @@ export default function PremiumDashboardPage() {
           <div className="ml-2 flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setModeAndUrl("charts")}
-              className={`px-2 py-1 rounded-md text-xs ${
-                mode === "charts"
+              className={`px-2 py-1 rounded-md text-xs ${mode === "charts"
                   ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
                   : "text-gray-600 dark:text-gray-400"
-              }`}
+                }`}
             >
               Charts
             </button>
             <button
               onClick={() => setModeAndUrl("table")}
-              className={`px-2 py-1 rounded-md text-xs ${
-                mode === "table"
+              className={`px-2 py-1 rounded-md text-xs ${mode === "table"
                   ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
                   : "text-gray-600 dark:text-gray-400"
-              }`}
+                }`}
             >
               Cards
             </button>

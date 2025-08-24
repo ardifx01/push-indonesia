@@ -64,7 +64,7 @@ const seedContribs: Contribution[] = [
 
 /* ===== palet & komponen kecil ===== */
 const colors = {
-  success: "#22c55e",
+  success: "#09f6e9",
   warning: "#f59e0b",
   danger: "#ef4444",
   info: "#06b6d4",

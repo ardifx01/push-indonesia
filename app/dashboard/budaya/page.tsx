@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/insights-ui";
 import {
-  Plus, Pencil, Trash2, Save, X, Search, Download, Upload, Layers, Tags
+  Plus, Pencil, Trash2, Save, X, Search, Download, Layers, Tags
 } from "lucide-react";
 import {
   kategoriBudaya as initKategori,
@@ -87,21 +87,19 @@ export default function BudayaEditorPage() {
         <div className="inline-flex rounded-lg bg-gray-100 dark:bg-gray-800 p-1">
           <button
             onClick={() => setTab("items")}
-            className={`px-3 py-2 rounded-md text-sm font-medium ${
-              tab === "items"
-                ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
-                : "text-gray-600 dark:text-gray-400"
-            }`}
+            className={`px-3 py-2 rounded-md text-sm font-medium ${tab === "items"
+              ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+              : "text-gray-600 dark:text-gray-400"
+              }`}
           >
             <Layers className="inline-block h-4 w-4 mr-2" /> Item Primer
           </button>
           <button
             onClick={() => setTab("kategori")}
-            className={`px-3 py-2 rounded-md text-sm font-medium ${
-              tab === "kategori"
-                ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
-                : "text-gray-600 dark:text-gray-400"
-            }`}
+            className={`px-3 py-2 rounded-md text-sm font-medium ${tab === "kategori"
+              ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+              : "text-gray-600 dark:text-gray-400"
+              }`}
           >
             <Tags className="inline-block h-4 w-4 mr-2" /> Kategori
           </button>
@@ -386,14 +384,14 @@ function Modal({
   title,
   onClose,
   children,
-}: {
+}: Readonly<{
   title: string;
   onClose: () => void;
   children: React.ReactNode;
-}) {
+}>) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <button className="absolute inset-0 bg-black/40 hover:cursor-pointer" onClick={onClose} />
       <div className="relative z-10 w-full max-w-lg rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl">
         <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
@@ -414,11 +412,11 @@ function Confirm({
   text,
   onCancel,
   onConfirm,
-}: {
+}: Readonly<{
   text: string;
   onCancel: () => void;
   onConfirm: () => void;
-}) {
+}>) {
   return (
     <Modal title="Konfirmasi" onClose={onCancel}>
       <p className="text-sm text-gray-700 dark:text-gray-300 mb-4">{text}</p>
@@ -445,12 +443,12 @@ function ItemForm({
   kategoriOptions,
   onCancel,
   onSave,
-}: {
+}: Readonly<{
   value: DetailedItem;
   kategoriOptions: string[];
   onCancel: () => void;
   onSave: (val: DetailedItem) => void;
-}) {
+}>) {
   const [form, setForm] = useState<DetailedItem>(value);
   const set = <K extends keyof DetailedItem,>(k: K, v: DetailedItem[K]) => setForm((f) => ({ ...f, [k]: v }));
 
@@ -559,11 +557,11 @@ function KategoriForm({
   value,
   onCancel,
   onSave,
-}: {
+}: Readonly<{
   value: Category;
   onCancel: () => void;
   onSave: (val: Category) => void;
-}) {
+}>) {
   const [form, setForm] = useState<Category>(value);
   const set = <K extends keyof Category,>(k: K, v: Category[K]) => setForm((f) => ({ ...f, [k]: v }));
   const valid = form.category.trim().length > 0;
