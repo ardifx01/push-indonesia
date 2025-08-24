@@ -13,7 +13,7 @@ type Category = {
 };
 
 export default function KategoriTooltip({ active, payload, label }: RechartsTooltipProps<number, string>) {
-  if (active && payload && payload.length) {
+  if (active && payload?.length) {
     const data = payload[0].payload as Category;
     return (
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-3 min-w-[220px]">
