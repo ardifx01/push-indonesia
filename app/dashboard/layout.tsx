@@ -6,7 +6,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const items = [
     { href: "/dashboard", label: "Dashboard", icon: "BarChart3" as const },
     { href: "/dashboard/budaya", label: "Edit Data Budaya", icon: "Edit3" as const }, // <- NEW
-    { href: "/dashboard?tab=api", label: "API Docs", icon: "Code2" as const },
+    { href: "/dashboard/api-docs", label: "API Docs", icon: "Code2" as const },
   ];
 
   return (

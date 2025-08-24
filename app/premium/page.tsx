@@ -21,6 +21,7 @@ import { Users, Shield, DollarSign, TrendingUp } from "lucide-react";
 import { Card, CardHeader, CardContent, CardTitle, Stat } from "@/components/insights-ui";
 import KategoriTooltip from "@/components/charts/KategoriTooltip";
 import { kategoriBudaya, kunjunganBulanan, sumberDataSekunder, tabelDetail } from "@/lib/budaya-data";
+import { INSIGHT_ABOUT, INSIGHT_QUOTE } from "@/lib/copy";
 
 type TimeRange = "7d" | "30d" | "90d";
 type ViewMode = "charts" | "table";
@@ -51,18 +52,39 @@ export default function PremiumDashboardPage() {
   );
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Header */}
-      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
-            Premium · Budaya Insights
-          </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-            Insight untuk akademisi &amp; pemerintah. Primer → chart, Sekunder → card.
-          </p>
-        </div>
+    <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* About / Hero */}
+      {/* <Card className="mb-6">
+        <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+          <CardTitle>Pena Insight — Analitik Budaya Indonesia</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2 space-y-3">
+              <p className="text-sm text-gray-700 dark:text-gray-300">{INSIGHT_ABOUT.p1}</p>
+              <blockquote className="text-sm italic text-gray-400 dark:text-gray-400 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
+                “{INSIGHT_QUOTE.text}” <span className="not-italic">— {INSIGHT_QUOTE.source}</span>
+              </blockquote>
+              <p className="text-sm text-gray-700 dark:text-gray-300">{INSIGHT_ABOUT.p2}</p>
+            </div>
+            <div className="rounded-md border border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-900">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-semibold">Kenapa Premium?</p>
+              <ul className="text-sm space-y-2">
+                <li>• Insight tren & popularitas per wilayah</li>
+                <li>• Demografi peminat & pergeseran minat</li>
+                <li>• Data primer (chart) & sekunder (card)</li>
+                <li>• API untuk riset & kebijakan</li>
+              </ul>
+            </div>
+          </div>
+        </CardContent>
+      </Card> */}
 
+      {/* Toolbar */}
+      <div className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          Insight untuk akademisi &amp; pemerintah. Primer → chart, Sekunder → card.
+        </div>
         <div className="flex items-center gap-2">
           <label htmlFor="range-user" className="text-xs text-gray-600 dark:text-gray-400">
             Rentang
@@ -112,9 +134,9 @@ export default function PremiumDashboardPage() {
       </div>
 
       {mode === "charts" ? (
-        /* ========================= CHARTS VIEW (1 kolom) ========================= */
+        /* =============== CHARTS VIEW (1 kolom) =============== */
         <div className="grid grid-cols-1 gap-6 mt-6">
-          {/* 1) Partisipasi Event Budaya */}
+          {/* Partisipasi */}
           <Card>
             <CardHeader className="border-b border-gray-200 dark:border-gray-700">
               <CardTitle>Partisipasi Event Budaya (Bulanan)</CardTitle>
@@ -151,10 +173,10 @@ export default function PremiumDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* 2) Distribusi Kategori (Primer) */}
+          {/* Distribusi Kategori */}
           <CategoryDistributionCard />
 
-          {/* 3) Tabel detail */}
+          {/* Tabel detail */}
           <Card>
             <CardHeader className="border-b border-gray-200 dark:border-gray-700">
               <CardTitle>Detail Primer (Table)</CardTitle>
@@ -203,7 +225,7 @@ export default function PremiumDashboardPage() {
           </Card>
         </div>
       ) : (
-        /* ========================= CARDS (SEKUNDER) ========================= */
+        /* =============== CARDS (SEKUNDER) =============== */
         <Card className="mt-6">
           <CardHeader className="border-b border-gray-200 dark:border-gray-700">
             <CardTitle>Data Sekunder (Cards)</CardTitle>
@@ -369,14 +391,12 @@ function CategoryChartHorizontal() {
         barCategoryGap={18}
       >
         <CartesianGrid strokeDasharray="4 4" stroke="#2b3546" />
-        {/* sumbu angka untuk sales (bawah) */}
         <XAxis
           xAxisId="sales"
           type="number"
           tick={{ fill: "#9aa4b2", fontSize: 12 }}
           tickFormatter={(v) => `${(v / 1000).toFixed(1)}K`}
         />
-        {/* sumbu angka untuk growth (atas) */}
         <XAxis
           xAxisId="growth"
           type="number"
@@ -384,7 +404,6 @@ function CategoryChartHorizontal() {
           tick={{ fill: "#9aa4b2", fontSize: 12 }}
           tickFormatter={(v) => `${v}%`}
         />
-        {/* kategori di sisi kiri */}
         <YAxis
           type="category"
           dataKey="category"
