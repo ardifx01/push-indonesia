@@ -1,9 +1,9 @@
 // app/premium/page.tsx
 "use client";
 
+
 import React, { useMemo, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-
 import {
   LineChart,
   Line,
@@ -12,20 +12,31 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  ComposedChart,
-  Bar,
-  Cell,
 } from "recharts";
 import { Users, Shield, DollarSign, TrendingUp } from "lucide-react";
 
-import { Card, CardHeader, CardContent, CardTitle, Stat } from "@/components/insights-ui";
-import KategoriTooltip from "@/components/charts/KategoriTooltip";
-import { kategoriBudaya, kunjunganBulanan, sumberDataSekunder, tabelDetail } from "@/lib/budaya-data";
-import { INSIGHT_ABOUT, INSIGHT_QUOTE } from "@/lib/copy";
+import {
+  Card,
+  CardHeader,
+  CardContent,
+  CardTitle,
+  Stat,
+} from "@/components/insights-ui";
+
+import CategoryDistribution, {
+  CategoryDatum,
+  type Orientation,
+} from "@/components/charts/premium/CategoryDistribution";
+
+import {
+  kategoriBudaya,
+  kunjunganBulanan,
+  sumberDataSekunder,
+  tabelDetail,
+} from "@/lib/budaya--data";
 
 type TimeRange = "7d" | "30d" | "90d";
 type ViewMode = "charts" | "table";
-type Orientation = "vertical" | "horizontal";
 
 export default function PremiumDashboardPage() {
   const search = useSearchParams();
@@ -34,6 +45,7 @@ export default function PremiumDashboardPage() {
   const initialMode = (search.get("mode") === "table" ? "table" : "charts") as ViewMode;
   const [mode, setMode] = useState<ViewMode>(initialMode);
   const [range, setRange] = useState<TimeRange>("30d");
+  const [orientation, setOrientation] = useState<Orientation>("vertical");
 
   useEffect(() => {
     const m = search.get("mode");
@@ -41,46 +53,38 @@ export default function PremiumDashboardPage() {
   }, [search]);
 
   const setModeAndUrl = (m: ViewMode) => {
-    const qs = m === "table" ? "?mode=table" : "?mode=charts";
-    router.replace(`/premium${qs}`);
+    router.replace(`/premium${m === "table" ? "?mode=table" : "?mode=charts"}`);
     setMode(m);
   };
 
+  // KPI mock
   const kpis = useMemo(
-    () => ({ penelitiAktif: 824, instansiTerdaftar: 112, dokPublikasi: 486, konversiInsight: 3.4 }),
+    () => ({
+      penelitiAktif: 824,
+      instansiTerdaftar: 112,
+      dokPublikasi: 486,
+      konversiInsight: 3.4,
+    }),
     []
   );
 
+  // === Data untuk komponen grafik kategori (dinormalisasi) ===
+  const kategoriData: CategoryDatum[] = useMemo(
+    () =>
+      (kategoriBudaya || []).map((k) => ({
+        category: k.category,
+        // normalisasi: bisa dari sales/items/value
+        sales: (k as any).sales ?? (k as any).items ?? (k as any).value ?? 0,
+        growth: k.growth ?? 0,
+        color: k.color ?? "#60a5fa",
+      })),
+    []
+  );
+  
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* About / Hero */}
-      {/* <Card className="mb-6">
-        <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-          <CardTitle>Pena Insight — Analitik Budaya Indonesia</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 space-y-3">
-              <p className="text-sm text-gray-700 dark:text-gray-300">{INSIGHT_ABOUT.p1}</p>
-              <blockquote className="text-sm italic text-gray-400 dark:text-gray-400 border-l-2 border-gray-300 dark:border-gray-700 pl-3">
-                “{INSIGHT_QUOTE.text}” <span className="not-italic">— {INSIGHT_QUOTE.source}</span>
-              </blockquote>
-              <p className="text-sm text-gray-700 dark:text-gray-300">{INSIGHT_ABOUT.p2}</p>
-            </div>
-            <div className="rounded-md border border-gray-200 dark:border-gray-700 p-3 bg-gray-50 dark:bg-gray-900">
-              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-semibold">Kenapa Premium?</p>
-              <ul className="text-sm space-y-2">
-                <li>• Insight tren & popularitas per wilayah</li>
-                <li>• Demografi peminat & pergeseran minat</li>
-                <li>• Data primer (chart) & sekunder (card)</li>
-                <li>• API untuk riset & kebijakan</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card> */}
-
-      {/* Toolbar */}
+      {/* Toolbar ringkas */}
       <div className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-gray-600 dark:text-gray-400">
           Insight untuk akademisi &amp; pemerintah. Primer → chart, Sekunder → card.
@@ -103,19 +107,21 @@ export default function PremiumDashboardPage() {
           <div className="ml-2 flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
             <button
               onClick={() => setModeAndUrl("charts")}
-              className={`px-2 py-1 rounded-md text-xs ${mode === "charts"
+              className={`px-2 py-1 rounded-md text-xs ${
+                mode === "charts"
                   ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
                   : "text-gray-600 dark:text-gray-400"
-                }`}
+              }`}
             >
               Charts
             </button>
             <button
               onClick={() => setModeAndUrl("table")}
-              className={`px-2 py-1 rounded-md text-xs ${mode === "table"
+              className={`px-2 py-1 rounded-md text-xs ${
+                mode === "table"
                   ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
                   : "text-gray-600 dark:text-gray-400"
-                }`}
+              }`}
             >
               Cards
             </button>
@@ -132,9 +138,8 @@ export default function PremiumDashboardPage() {
       </div>
 
       {mode === "charts" ? (
-        /* =============== CHARTS VIEW (1 kolom) =============== */
         <div className="grid grid-cols-1 gap-6 mt-6">
-          {/* Partisipasi */}
+          {/* Partisipasi Event */}
           <Card>
             <CardHeader className="border-b border-gray-200 dark:border-gray-700">
               <CardTitle>Partisipasi Event Budaya (Bulanan)</CardTitle>
@@ -161,9 +166,17 @@ export default function PremiumDashboardPage() {
                       activeDot={{ r: 5, fill: "#7aa2ff", stroke: "#fff", strokeWidth: 2 }}
                     />
                     <Tooltip
-                      contentStyle={{ backgroundColor: "rgb(15 23 42)", border: "1px solid #334155", borderRadius: 8, color: "#e2e8f0" }}
+                      contentStyle={{
+                        backgroundColor: "rgb(15 23 42)",
+                        border: "1px solid #334155",
+                        borderRadius: 8,
+                        color: "#e2e8f0",
+                      }}
                       labelStyle={{ color: "#e2e8f0", fontWeight: 600 }}
-                      formatter={(raw: any) => [`${Number(raw).toLocaleString("id-ID")} partisipasi`, "Total"]}
+                      formatter={(raw: unknown) => [
+                        `${Number(raw as number).toLocaleString("id-ID")} partisipasi`,
+                        "Total",
+                      ]}
                     />
                   </LineChart>
                 </ResponsiveContainer>
@@ -171,14 +184,46 @@ export default function PremiumDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Distribusi Kategori */}
-          <CategoryDistributionCard />
+          {/* Distribusi Kategori (dengan toggle orientasi) */}
+          <Card>
+            <CardHeader className="flex items-start justify-between border-b border-gray-200 dark:border-gray-700">
+              <CardTitle>Distribusi Kategori (Primer)</CardTitle>
+              <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-md text-xs">
+                <button
+                  onClick={() => setOrientation("vertical")}
+                  className={`px-2 py-1 rounded ${
+                    orientation === "vertical"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  Vertical
+                </button>
+                <button
+                  onClick={() => setOrientation("horizontal")}
+                  className={`px-2 py-1 rounded ${
+                    orientation === "horizontal"
+                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
+                      : "text-gray-600 dark:text-gray-400"
+                  }`}
+                >
+                  Horizontal
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <CategoryDistribution data={kategoriData} orientation={orientation} height={320} />
+              
+            </CardContent>
+          </Card>
 
           {/* Tabel detail */}
           <Card>
             <CardHeader className="border-b border-gray-200 dark:border-gray-700">
               <CardTitle>Detail Primer (Table)</CardTitle>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Contoh tabel untuk unduhan CSV/filter</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                Contoh tabel untuk unduhan CSV/filter
+              </p>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -201,7 +246,11 @@ export default function PremiumDashboardPage() {
                           <span className="inline-flex items-center gap-2 text-gray-900 dark:text-gray-100 font-medium">
                             <span
                               className="w-3 h-3 rounded-sm"
-                              style={{ background: kategoriBudaya.find((k) => k.category === row.category)?.color || "#6b7280" }}
+                              style={{
+                                background:
+                                  kategoriBudaya.find((k) => k.category === row.category)?.color ||
+                                  "#6b7280",
+                              }}
                             />
                             {row.category}
                           </span>
@@ -211,7 +260,11 @@ export default function PremiumDashboardPage() {
                           {row.value.toLocaleString("id-ID")}
                         </td>
                         <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{row.region}</td>
-                        <td className={`px-6 py-3 font-medium ${row.growth >= 10 ? "text-green-600" : "text-orange-500"}`}>
+                        <td
+                          className={`px-6 py-3 font-medium ${
+                            row.growth >= 10 ? "text-green-600" : "text-orange-500"
+                          }`}
+                        >
                           +{row.growth}%
                         </td>
                       </tr>
@@ -223,7 +276,7 @@ export default function PremiumDashboardPage() {
           </Card>
         </div>
       ) : (
-        /* =============== CARDS (SEKUNDER) =============== */
+        // === Cards (Sekunder) ===
         <Card className="mt-6">
           <CardHeader className="border-b border-gray-200 dark:border-gray-700">
             <CardTitle>Data Sekunder (Cards)</CardTitle>
@@ -238,7 +291,9 @@ export default function PremiumDashboardPage() {
                     <p className="text-xs text-gray-500 dark:text-gray-400">{s.org}</p>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">{s.summary}</p>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
+                      {s.summary}
+                    </p>
                     <a href={s.url} className="text-xs text-blue-500 hover:underline">
                       Ke sumber →
                     </a>
@@ -250,182 +305,5 @@ export default function PremiumDashboardPage() {
         </Card>
       )}
     </div>
-  );
-}
-
-/* ===================== KOMPONEN CHART KATEGORI ===================== */
-
-function CategoryDistributionCard() {
-  const [orientation, setOrientation] = useState<Orientation>("vertical");
-
-  return (
-    <Card>
-      <CardHeader className="flex items-start justify-between border-b border-gray-200 dark:border-gray-700">
-        <div>
-          <CardTitle>Distribusi Kategori (Primer)</CardTitle>
-        </div>
-        {/* switch orientasi */}
-        <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-md text-xs">
-          <button
-            onClick={() => setOrientation("vertical")}
-            className={`px-2 py-1 rounded ${orientation === "vertical" ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-600 dark:text-gray-400"}`}
-          >
-            Vertical
-          </button>
-          <button
-            onClick={() => setOrientation("horizontal")}
-            className={`px-2 py-1 rounded ${orientation === "horizontal" ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-600 dark:text-gray-400"}`}
-          >
-            Horizontal
-          </button>
-        </div>
-      </CardHeader>
-
-      <CardContent className="pt-6">
-        <div className="h-80">
-          {orientation === "vertical" ? <CategoryChartVertical /> : <CategoryChartHorizontal />}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-function CategoryChartVertical() {
-  // bungkus label jadi max 2 baris
-  const wrap = (label: string, limit = 12) => {
-    const words = label.split(" ");
-    const lines: string[] = [];
-    let cur = "";
-    for (const w of words) {
-      if ((cur + " " + w).trim().length > limit && cur) {
-        lines.push(cur);
-        cur = w;
-      } else {
-        cur = (cur + " " + w).trim();
-      }
-    }
-    if (cur) lines.push(cur);
-    return lines.slice(0, 2);
-  };
-
-  const Tick = (props: any) => {
-    const { x, y, payload } = props;
-    const lines = wrap(String(payload.value));
-    return (
-      <g transform={`translate(${x},${y})`}>
-        <text textAnchor="middle" fill="#9aa4b2" fontSize={12}>
-          {lines.map((ln, i) => (
-            <tspan key={i} x={0} dy={i === 0 ? 0 : 14}>
-              {ln}
-            </tspan>
-          ))}
-        </text>
-      </g>
-    );
-  };
-
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart
-        data={kategoriBudaya}
-        margin={{ top: 8, right: 16, bottom: 36, left: 16 }}
-        barCategoryGap={24}
-      >
-        <CartesianGrid strokeDasharray="4 4" stroke="#2b3546" />
-        <XAxis
-          dataKey="category"
-          interval={0}
-          height={40}
-          tickMargin={10}
-          tick={<Tick />}
-          tickLine={false}
-          axisLine={false}
-        />
-        <YAxis
-          yAxisId="left"
-          tickLine={false}
-          axisLine={false}
-          width={56}
-          tick={{ fill: "#9aa4b2", fontSize: 12 }}
-          tickFormatter={(v) => `${(v / 1000).toFixed(1)}K`}
-        />
-        <YAxis
-          yAxisId="right"
-          orientation="right"
-          tickLine={false}
-          axisLine={false}
-          width={44}
-          tick={{ fill: "#9aa4b2", fontSize: 12 }}
-          tickFormatter={(v) => `${v}%`}
-        />
-        <Bar yAxisId="left" dataKey="sales" radius={[6, 6, 0, 0]} maxBarSize={42}>
-          {kategoriBudaya.map((entry, i) => (
-            <Cell key={`cell-${i}`} fill={entry.color} fillOpacity={0.9} />
-          ))}
-        </Bar>
-        <Line
-          yAxisId="right"
-          type="monotone"
-          dataKey="growth"
-          stroke="#22c55e"
-          strokeWidth={3}
-          dot={{ r: 4, fill: "#22c55e" }}
-          activeDot={{ r: 5, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}
-        />
-        <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} content={<KategoriTooltip />} />
-      </ComposedChart>
-    </ResponsiveContainer>
-  );
-}
-
-function CategoryChartHorizontal() {
-  // Horizontal = bar mendatar; label kategori aman di kiri
-  return (
-    <ResponsiveContainer width="100%" height="100%">
-      <ComposedChart
-        layout="vertical"
-        data={kategoriBudaya}
-        margin={{ top: 8, right: 16, bottom: 8, left: 16 }}
-        barCategoryGap={18}
-      >
-        <CartesianGrid strokeDasharray="4 4" stroke="#2b3546" />
-        <XAxis
-          xAxisId="sales"
-          type="number"
-          tick={{ fill: "#9aa4b2", fontSize: 12 }}
-          tickFormatter={(v) => `${(v / 1000).toFixed(1)}K`}
-        />
-        <XAxis
-          xAxisId="growth"
-          type="number"
-          orientation="top"
-          tick={{ fill: "#9aa4b2", fontSize: 12 }}
-          tickFormatter={(v) => `${v}%`}
-        />
-        <YAxis
-          type="category"
-          dataKey="category"
-          width={120}
-          tick={{ fill: "#cbd5e1", fontSize: 12 }}
-          tickLine={false}
-          axisLine={false}
-        />
-        <Bar xAxisId="sales" dataKey="sales" radius={[0, 6, 6, 0]} maxBarSize={22}>
-          {kategoriBudaya.map((entry, i) => (
-            <Cell key={`cell-h-${i}`} fill={entry.color} fillOpacity={0.9} />
-          ))}
-        </Bar>
-        <Line
-          xAxisId="growth"
-          type="monotone"
-          dataKey="growth"
-          stroke="#22c55e"
-          strokeWidth={3}
-          dot={{ r: 3, fill: "#22c55e" }}
-          activeDot={{ r: 5, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}
-        />
-        <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} content={<KategoriTooltip />} />
-      </ComposedChart>
-    </ResponsiveContainer>
   );
 }

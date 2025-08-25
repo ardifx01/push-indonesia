@@ -10,7 +10,7 @@ import {
   tabelDetail as initItems,
   Category,
   DetailedItem,
-} from "@/lib/budaya-data";
+} from "@/lib/budaya--data";
 
 type Tab = "items" | "kategori";
 

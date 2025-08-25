@@ -13,36 +13,17 @@ import {
   Search,
   ArrowRight,
 } from "lucide-react";
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
-  Stat,
-} from "@/components/insights-ui";
+import { Card, CardHeader, CardContent, CardTitle, Stat } from "@/components/insights-ui";
 import Link from "next/link";
-import { kategoriBudaya as kategoriSeed } from "@/lib/budaya-data";
+import { kategoriBudaya as kategoriSeed } from "@/lib/budaya--data";
 
-/* recharts */
-import {
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-  ComposedChart,
-  AreaChart,
-  Area,
-} from "recharts";
+/* charts (komponen terpisah) */
+import ModerationTrend, { ModerationPoint } from "@/components/charts/ModerationTrend";
+import StatusPie, { StatusSlice } from "@/components/charts/StatusPie";
+import CategoryDistribution, { CategoryBar } from "@/components/charts/CategoryDistribution";
+import PrimerItemsGrowth, { PrimerDatum } from "@/components/charts/PrimerItemsGrowth";
 
+/* ====== types & seed ====== */
 type Status = "pending" | "approved" | "rejected";
 
 type Contribution = {
@@ -62,59 +43,7 @@ const seedContribs: Contribution[] = [
   { id: 104, title: "Kuliner Gudeg", category: "Kuliner Khas", region: "DIY", contributor: "Arsip Kuliner Nusantara", status: "rejected", attachments: 1 },
 ];
 
-/* ===== palet & komponen kecil ===== */
-const colors = {
-  success: "#09f6e9",
-  warning: "#f59e0b",
-  danger: "#ef4444",
-  info: "#06b6d4",
-};
-
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow">
-      {label && <div className="text-xs font-semibold mb-1">{label}</div>}
-      {payload.map((p: any, i: number) => (
-        <div key={i} className="flex items-center gap-2 text-xs">
-          <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: p.color }} />
-          <span className="opacity-80">{p.name}:</span>
-          <span className="font-semibold">{p.value}</span>
-        </div>
-      ))}
-    </div>
-  );
-};
-
-const wrapLabel = (text: string, limit = 12) => {
-  const words = text.split(" ");
-  const lines: string[] = [];
-  let cur = "";
-  for (const w of words) {
-    if ((cur + " " + w).trim().length > limit && cur) {
-      lines.push(cur);
-      cur = w;
-    } else cur = (cur + " " + w).trim();
-  }
-  if (cur) lines.push(cur);
-  return lines.slice(0, 2);
-};
-
-const XTick = (props: any) => {
-  const { x, y, payload } = props;
-  const lines = wrapLabel(String(payload.value));
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <text textAnchor="middle" fill="#9aa4b2" fontSize={12}>
-        {lines.map((ln: string, i: number) => (
-          <tspan key={i} x={0} dy={i === 0 ? 0 : 14}>
-            {ln}
-          </tspan>
-        ))}
-      </text>
-    </g>
-  );
-};
+const colors = { success: "#09f6e9", warning: "#f59e0b", danger: "#ef4444" };
 
 export default function AdminOverviewPage() {
   const [q, setQ] = useState("");
@@ -146,8 +75,9 @@ export default function AdminOverviewPage() {
   const updateStatus = (id: number, status: Status) =>
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
 
-  /* chart data */
-  const moderationTrend = useMemo(
+  /* ====== DATA UNTUK GRAFIK ====== */
+
+  const moderationTrend: ModerationPoint[] = useMemo(
     () => [
       { w: "W-1", approved: 1, pending: 2, rejected: 0 },
       { w: "W-2", approved: 2, pending: 2, rejected: 1 },
@@ -161,7 +91,7 @@ export default function AdminOverviewPage() {
     []
   );
 
-  const statusBreakdown = useMemo(() => {
+  const statusBreakdown: StatusSlice[] = useMemo(() => {
     const p = rows.filter((r) => r.status === "pending").length;
     const a = rows.filter((r) => r.status === "approved").length;
     const rj = rows.filter((r) => r.status === "rejected").length;
@@ -172,18 +102,17 @@ export default function AdminOverviewPage() {
     ];
   }, [rows]);
 
-  const byCategory = useMemo(() => {
+  const byCategory: CategoryBar[] = useMemo(() => {
     const map = new Map<string, number>();
     rows.forEach((r) => map.set(r.category, (map.get(r.category) ?? 0) + 1));
     return Array.from(map, ([category, count]) => ({
       category,
       count,
-      color:
-        kategoriSeed.find((k) => k.category === category)?.color || "#60a5fa",
+      color: kategoriSeed.find((k) => k.category === category)?.color || "#60a5fa",
     })).sort((a, b) => b.count - a.count);
   }, [rows]);
 
-  const primerOverview = useMemo(
+  const primerOverview: PrimerDatum[] = useMemo(
     () =>
       kategoriSeed.slice(0, 8).map((k) => ({
         category: k.category,
@@ -319,116 +248,42 @@ export default function AdminOverviewPage() {
 
       {/* ===== Grafik atas ===== */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-        {/* Moderation trend */}
         <Card className="lg:col-span-2">
           <CardHeader className="border-b border-gray-200 dark:border-gray-700">
             <CardTitle>Tren Moderasi (8 minggu)</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={moderationTrend} margin={{ left: 12, right: 12 }}>
-                  <defs>
-                    <linearGradient id="gOk" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={colors.success} stopOpacity={0.25} />
-                      <stop offset="95%" stopColor={colors.success} stopOpacity={0.05} />
-                    </linearGradient>
-                    <linearGradient id="gPend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={colors.warning} stopOpacity={0.25} />
-                      <stop offset="95%" stopColor={colors.warning} stopOpacity={0.05} />
-                    </linearGradient>
-                    <linearGradient id="gRej" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={colors.danger} stopOpacity={0.25} />
-                      <stop offset="95%" stopColor={colors.danger} stopOpacity={0.05} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2b3546" />
-                  <XAxis dataKey="w" tickLine={false} axisLine={false} tick={{ fill: "#9aa4b2", fontSize: 12 }} />
-                  <YAxis tickLine={false} axisLine={false} width={40} tick={{ fill: "#9aa4b2", fontSize: 12 }} />
-                  <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="approved" name="Approved" stroke={colors.success} fill="url(#gOk)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="pending" name="Pending" stroke={colors.warning} fill="url(#gPend)" strokeWidth={2} />
-                  <Area type="monotone" dataKey="rejected" name="Rejected" stroke={colors.danger} fill="url(#gRej)" strokeWidth={2} />
-                  <Legend />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
+            <ModerationTrend data={moderationTrend} />
           </CardContent>
         </Card>
 
-        {/* Pie status */}
         <Card>
           <CardHeader className="border-b border-gray-200 dark:border-gray-700">
             <CardTitle>Ringkasan Status</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={statusBreakdown} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={48} outerRadius={80} paddingAngle={3}>
-                    {statusBreakdown.map((s, i) => (
-                      <Cell key={i} fill={s.color} />
-                    ))}
-                  </Pie>
-                  <Legend />
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <StatusPie data={statusBreakdown} />
           </CardContent>
         </Card>
       </div>
 
       {/* ===== Distribusi + Primer (bawah) ===== */}
       <div className="grid grid-cols-1 gap-6">
-        {/* Distribusi kontribusi */}
         <Card>
           <CardHeader className="border-b border-gray-200 dark:border-gray-700">
             <CardTitle>Distribusi Kontribusi per Kategori</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={byCategory} margin={{ top: 8, right: 16, bottom: 36, left: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2b3546" />
-                  <XAxis dataKey="category" interval={0} height={40} tickMargin={10} tick={<XTick />} tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} width={40} tick={{ fill: "#9aa4b2", fontSize: 12 }} />
-                  <Tooltip cursor={false} content={<CustomTooltip />} />
-                  <Bar dataKey="count" name="Jumlah" radius={[6, 6, 0, 0]}>
-                    {byCategory.map((b, i) => (
-                      <Cell key={i} fill={b.color} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <CategoryDistribution data={byCategory} />
           </CardContent>
         </Card>
 
-        {/* Primer: Items vs Growth */}
         <Card>
           <CardHeader className="border-b border-gray-200 dark:border-gray-700">
             <CardTitle>Primer · Items vs Growth</CardTitle>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={primerOverview} margin={{ top: 8, right: 16, bottom: 36, left: 16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2b3546" />
-                  <XAxis dataKey="category" interval={0} height={40} tickMargin={10} tick={<XTick />} tickLine={false} axisLine={false} />
-                  <YAxis yAxisId="left" tickLine={false} axisLine={false} width={48} tick={{ fill: "#9aa4b2", fontSize: 12 }} />
-                  <YAxis yAxisId="right" orientation="right" tickFormatter={(v) => `${v}%`} tickLine={false} axisLine={false} width={44} tick={{ fill: "#9aa4b2", fontSize: 12 }} />
-                  <Bar yAxisId="left" dataKey="items" name="Items" radius={[6, 6, 0, 0]}>
-                    {primerOverview.map((p, i) => (
-                      <Cell key={i} fill={p.color} />
-                    ))}
-                  </Bar>
-                  <Line yAxisId="right" type="monotone" dataKey="growth" name="Growth" stroke={colors.success} strokeWidth={3} dot={{ r: 3, fill: colors.success }} />
-                  <Tooltip cursor={false} content={<CustomTooltip />} />
-                  <Legend />
-                </ComposedChart>
-              </ResponsiveContainer>
-            </div>
+            <PrimerItemsGrowth data={primerOverview} />
           </CardContent>
         </Card>
       </div>
