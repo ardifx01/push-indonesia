@@ -87,7 +87,6 @@ export default function PremiumDashboardPage() {
       {/* Toolbar ringkas */}
       <div className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-gray-600 dark:text-gray-400">
-          Insight untuk akademisi &amp; pemerintah. Primer → chart, Sekunder → card.
         </div>
         <div className="flex items-center gap-2">
           <label htmlFor="range-user" className="text-xs text-gray-600 dark:text-gray-400">
@@ -221,9 +220,6 @@ export default function PremiumDashboardPage() {
           <Card>
             <CardHeader className="border-b border-gray-200 dark:border-gray-700">
               <CardTitle>Detail Primer (Table)</CardTitle>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Contoh tabel untuk unduhan CSV/filter
-              </p>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
