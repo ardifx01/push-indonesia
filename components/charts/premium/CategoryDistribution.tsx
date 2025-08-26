@@ -1,7 +1,6 @@
-// components/charts/premium/CategoryDistribution.tsx
 "use client";
 
-import React from "react";
+import * as React from "react";
 import {
   ResponsiveContainer,
   ComposedChart,
@@ -14,41 +13,108 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import KategoriTooltip from "@/components/charts/KategoriTooltip";
+import type { TooltipProps, ValueType, NameType } from "recharts";
 
 export type Orientation = "vertical" | "horizontal";
-
 export type CategoryDatum = {
   category: string;
-  sales: number;   // nilai bar
+  sales: number;   // nilai bar (ex: jumlah / sales)
   growth: number;  // nilai line (%)
   color?: string;  // warna bar
 };
 
 type Props = {
   data: CategoryDatum[];
-  orientation?: Orientation;
-  height?: number; // px
+  orientation?: Orientation;   // default: "vertical"
+  height?: number;             // default: 320
+  showLegend?: boolean;        // default: true
+};
+
+/* ---------- hook kecil untuk deteksi tema ---------- */
+function useIsDark() {
+  const get = () => {
+    if (typeof window === "undefined") return false;
+    const root = document.documentElement;
+    const classDark = root.classList.contains("dark");
+    const mql = window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+    return classDark || mql;
+  };
+  const [dark, setDark] = React.useState<boolean>(get);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const root = document.documentElement;
+    const mql = window.matchMedia("(prefers-color-scheme: dark)");
+    const update = () => setDark(get());
+    const mo = new MutationObserver(update);
+    mo.observe(root, { attributes: true, attributeFilter: ["class"] });
+    mql.addEventListener?.("change", update);
+    return () => {
+      mo.disconnect();
+      mql.removeEventListener?.("change", update);
+    };
+  }, []);
+
+  return dark;
+}
+
+/* ---------- Tooltip elegan + bertipe ---------- */
+const ThemedTooltip: React.FC<TooltipProps<ValueType, NameType> & { dark: boolean }> = ({
+  active,
+  payload,
+  label,
+  dark,
+}) => {
+  if (!active || !payload || payload.length === 0) return null;
+  const box = dark
+    ? "bg-slate-900/95 border border-slate-700 text-slate-100"
+    : "bg-white/95 border border-slate-200 text-slate-800";
+
+  return (
+    <div className={`rounded-lg px-3 py-2 shadow-xl backdrop-blur-sm ${box}`}>
+      {label ? <div className="text-xs font-semibold mb-1">{String(label)}</div> : null}
+      {payload.map((p, i) => {
+        const name = String(p.name ?? "");
+        const val = Number(p.value ?? 0);
+        const color =
+          ((p as any).color as string) ??
+          ((p.payload as any)?.color as string) ??
+          "#60a5fa";
+        return (
+          <div key={i} className="flex items-center gap-2 text-xs">
+            <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: color }} />
+            <span className={dark ? "text-slate-300" : "text-slate-600"}>{name}:</span>
+            <span className="font-semibold">
+              {name.toLowerCase() === "sales" ? `${(val / 1000).toFixed(0)}K` : `${val}%`}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 export default function CategoryDistribution({
   data,
   orientation = "vertical",
   height = 320,
+  showLegend = true,
 }: Props) {
-  // Guard: kalau tidak ada tinggi/width parent, ResponsiveContainer akan 0x0.
-  // Maka kita pakai div dengan style {height} supaya pasti punya tinggi.
+  const isDark = useIsDark();
+
+  const gridColor   = isDark ? "#2b3546" : "#e2e8f0";
+  const tickColor   = isDark ? "#9aa4b2" : "#475569";
+  const legendColor = isDark ? "#9aa4b2" : "#475569";
+
   if (!data || data.length === 0) {
     return (
-      <div
-        className="flex items-center justify-center text-sm text-gray-500 dark:text-gray-400"
-        style={{ height }}
-      >
+      <div className="flex items-center justify-center text-sm text-gray-500" style={{ height }}>
         Tidak ada data
       </div>
     );
   }
 
+  /* ---------- Horizontal ---------- */
   if (orientation === "horizontal") {
     return (
       <div style={{ height }}>
@@ -56,85 +122,101 @@ export default function CategoryDistribution({
           <ComposedChart
             layout="vertical"
             data={data}
-            margin={{ top: 8, right: 16, bottom: 8, left: 16 }}
+            margin={{ top: 16, right: 24, bottom: 16, left: 100 }}
             barCategoryGap={18}
           >
-            <CartesianGrid strokeDasharray="4 4" stroke="#2b3546" />
+            <defs>
+              {data.map((d, i) => (
+                <linearGradient key={i} id={`hGrad-${i}`} x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%"   stopColor={d.color || "#60a5fa"} stopOpacity={0.8} />
+                  <stop offset="100%" stopColor={d.color || "#60a5fa"} stopOpacity={1} />
+                </linearGradient>
+              ))}
+            </defs>
+
+            <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
             <XAxis
               xAxisId="sales"
               type="number"
-              tick={{ fill: "#9aa4b2", fontSize: 12 }}
+              tick={{ fill: tickColor, fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `${(Number(v) / 1000).toFixed(0)}K`}
             />
             <XAxis
               xAxisId="growth"
               type="number"
               orientation="top"
-              tick={{ fill: "#9aa4b2", fontSize: 12 }}
-              tickFormatter={(v) => `${v}%`}
+              tick={{ fill: tickColor, fontSize: 11 }}
+              tickLine={false}
+              axisLine={false}
+              tickFormatter={(v) => `${Number(v)}%`}
             />
             <YAxis
               dataKey="category"
               type="category"
-              width={120}
-              tick={{ fill: "#cbd5e1", fontSize: 12 }}
+              width={110}
+              tick={{ fill: isDark ? "#e5e7eb" : "#334155", fontSize: 11 }}
               tickLine={false}
               axisLine={false}
             />
-            <Bar
-              xAxisId="sales"
-              dataKey="sales"
-              name="Sales"
-              radius={[0, 6, 6, 0]}
-              maxBarSize={22}
-            >
-              {data.map((d, i) => (
-                <Cell key={i} fill={d.color || "#60a5fa"} />
-              ))}
+
+            <Bar xAxisId="sales" dataKey="sales" name="Sales" radius={[0, 8, 8, 0]} maxBarSize={24}>
+              {data.map((_, i) => <Cell key={i} fill={`url(#hGrad-${i})`} />)}
             </Bar>
+
             <Line
               xAxisId="growth"
               type="monotone"
               dataKey="growth"
               name="Growth"
-              stroke="#22c55e"
-              strokeWidth={3}
-              dot={{ r: 3, fill: "#22c55e" }}
-              activeDot={{ r: 5, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}
+              stroke="#22d3ee"
+              strokeWidth={2.5}
+              dot={{ r: 4, fill: "#22d3ee", strokeWidth: 2, stroke: isDark ? "#0f172a" : "#ffffff" }}
+              activeDot={{ r: 6, fill: "#22d3ee", stroke: isDark ? "#0f172a" : "#ffffff", strokeWidth: 2 }}
             />
-            <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} content={<KategoriTooltip />} />
-            <Legend />
+
+            <Tooltip content={(p) => <ThemedTooltip {...p} dark={isDark} />} />
+            {showLegend && <Legend wrapperStyle={{ color: legendColor }} iconType="rect" />}
           </ComposedChart>
         </ResponsiveContainer>
       </div>
     );
   }
 
-  // VERTICAL
+  /* ---------- Vertical (default) ---------- */
   return (
     <div style={{ height }}>
       <ResponsiveContainer width="100%" height="100%">
-        <ComposedChart
-          data={data}
-          margin={{ top: 8, right: 16, bottom: 36, left: 16 }}
-          barCategoryGap={24}
-        >
-          <CartesianGrid strokeDasharray="4 4" stroke="#2b3546" />
+        <ComposedChart data={data} margin={{ top: 16, right: 24, bottom: 48, left: 16 }} barCategoryGap={24}>
+          <defs>
+            {data.map((d, i) => (
+              <linearGradient key={i} id={`vGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%"   stopColor={d.color || "#60a5fa"} stopOpacity={1} />
+                <stop offset="100%" stopColor={d.color || "#60a5fa"} stopOpacity={0.7} />
+              </linearGradient>
+            ))}
+          </defs>
+
+          <CartesianGrid strokeDasharray="3 3" stroke={gridColor} />
           <XAxis
             dataKey="category"
             interval={0}
-            height={40}
-            tickMargin={10}
+            height={48}
+            tickMargin={8}
             tickLine={false}
             axisLine={false}
-            tick={{ fill: "#9aa4b2", fontSize: 12 }}
+            tick={{ fill: tickColor, fontSize: 11 }}
+            angle={-35}
+            textAnchor="end"
           />
           <YAxis
             yAxisId="left"
             tickLine={false}
             axisLine={false}
-            width={56}
-            tick={{ fill: "#9aa4b2", fontSize: 12 }}
-            tickFormatter={(v) => `${(Number(v) / 1000).toFixed(1)}K`}
+            width={52}
+            tick={{ fill: tickColor, fontSize: 11 }}
+            tickFormatter={(v) => `${(Number(v) / 1000).toFixed(0)}K`}
           />
           <YAxis
             yAxisId="right"
@@ -142,26 +224,27 @@ export default function CategoryDistribution({
             tickLine={false}
             axisLine={false}
             width={44}
-            tick={{ fill: "#9aa4b2", fontSize: 12 }}
-            tickFormatter={(v) => `${v}%`}
+            tick={{ fill: tickColor, fontSize: 11 }}
+            tickFormatter={(v) => `${Number(v)}%`}
           />
-          <Bar yAxisId="left" dataKey="sales" name="Sales" radius={[6, 6, 0, 0]}>
-            {data.map((d, i) => (
-              <Cell key={i} fill={d.color || "#60a5fa"} />
-            ))}
+
+          <Bar yAxisId="left" dataKey="sales" name="Sales" radius={[8, 8, 0, 0]} maxBarSize={48}>
+            {data.map((_, i) => <Cell key={i} fill={`url(#vGrad-${i})`} />)}
           </Bar>
+
           <Line
             yAxisId="right"
             type="monotone"
             dataKey="growth"
             name="Growth"
-            stroke="#22c55e"
+            stroke="#22d3ee"
             strokeWidth={3}
-            dot={{ r: 4, fill: "#22c55e" }}
-            activeDot={{ r: 5, fill: "#22c55e", stroke: "#fff", strokeWidth: 2 }}
+            dot={{ r: 5, fill: "#22d3ee", strokeWidth: 2, stroke: isDark ? "#0f172a" : "#ffffff" }}
+            activeDot={{ r: 7, fill: "#22d3ee", stroke: isDark ? "#0f172a" : "#ffffff", strokeWidth: 3 }}
           />
-          <Tooltip cursor={{ fill: "rgba(255,255,255,0.04)" }} content={<KategoriTooltip />} />
-          <Legend />
+
+          <Tooltip content={(p) => <ThemedTooltip {...p} dark={isDark} />} />
+          {showLegend && <Legend wrapperStyle={{ color: legendColor }} iconType="rect" />}
         </ComposedChart>
       </ResponsiveContainer>
     </div>
