@@ -144,3 +144,9 @@
   background: oklch(1 0 0 / 20%);
   background-clip: padding-box;
 }
+
+.theme-transition * {
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+html { color-scheme: light dark; }
