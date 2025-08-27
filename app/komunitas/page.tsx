@@ -48,25 +48,6 @@ export default function CommunityDashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Hero ringkas */}
-      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-        </div>
-        <div className="flex gap-2">
-          <Link
-            href="#quick-submit"
-            className="inline-flex items-center gap-2 text-xs rounded-md px-3 py-2 border border-blue-300 text-blue-700 dark:text-blue-300 hover:bg-blue-50 dark:border-blue-700 dark:hover:bg-blue-900/20"
-          >
-            <Plus className="h-4 w-4" /> Tambah Kontribusi
-          </Link>
-          <Link
-            href="/api-docs"
-            className="inline-flex items-center gap-2 text-xs rounded-md px-3 py-2 border border-gray-300 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
-          >
-            <Upload className="h-4 w-4" /> API Upload
-          </Link>
-        </div>
-      </div>
 
       {/* KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -100,7 +81,7 @@ export default function CommunityDashboardPage() {
       {/* Quick submit */}
       <Card id="quick-submit" className="mb-6">
         <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-          <CardTitle>Tambah Kontribusi Cepat</CardTitle>
+          <CardTitle>Tambah Kontribusi </CardTitle>
         </CardHeader>
         <CardContent className="pt-4">
           <QuickSubmit
