@@ -1,12 +1,20 @@
+// app/dashboard/layout.tsx
 import "../globals.css";
 import Sidebar from "@/components/sidebar";
 import ThemeToggle from "@/components/theme-toggle";
 
-export default function DashboardLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function DashboardLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   const items = [
-    { href: "/dashboard", label: "Dashboard", icon: "BarChart3" as const },
-    { href: "/dashboard/budaya", label: "Edit Data Budaya", icon: "Edit3" as const }, // <- NEW
-    { href: "/dashboard/api-docs", label: "API Docs", icon: "Code2" as const },
+    { href: "/dashboard",             label: "Overview",               icon: "Gauge"      as const },
+    { href: "/dashboard/moderasi",    label: "Antrian Moderasi",       icon: "ListChecks" as const },
+    { href: "/dashboard/tren",        label: "Tren Moderasi & Status", icon: "Activity"   as const },
+    { href: "/dashboard/distribusi",  label: "Distribusi Kontribusi",  icon: "BarChart2"  as const },
+    { href: "/dashboard/primer",      label: "Primer: Items vs Growth",icon: "TrendingUp" as const },
+
+    { href: "/dashboard/budaya",   label: "Edit Data Budaya", icon: "Edit3" as const },
+    { href: "/dashboard/api-docs", label: "API Docs",          icon: "Code2" as const },
   ];
 
   return (
@@ -22,6 +30,6 @@ export default function DashboardLayout({ children }: Readonly<{ children: React
           </main>
         </div>
       </div>
-    </div >
+    </div>
   );
 }
