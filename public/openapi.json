@@ -1,0 +1,827 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Budaya API",
+    "description": "API for managing cultural heritage categories, items, and community contributions",
+    "version": "1.0.0",
+    "contact": {
+      "name": "API Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.example.com",
+      "description": "Production server"
+    },
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server"
+    }
+  ],
+  "paths": {
+    "/api/budaya/categories": {
+      "get": {
+        "summary": "List Categories",
+        "description": "Ambil semua kategori budaya (nama, warna, target, dll).",
+        "tags": [
+          "Categories"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Category"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "seni-pertunjukan",
+                      "category": "Seni Pertunjukan",
+                      "sales": 8200,
+                      "growth": 15.2,
+                      "items": 450,
+                      "target": 9000,
+                      "color": "#60a5fa"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Category",
+        "description": "Buat kategori baru.",
+        "tags": [
+          "Categories"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryRequest"
+              },
+              "example": {
+                "category": "Bahasa Daerah",
+                "sales": 0,
+                "growth": 0,
+                "items": 0,
+                "target": 100,
+                "color": "#22c55e"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Category created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Category"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": "bahasa-daerah",
+                    "category": "Bahasa Daerah",
+                    "sales": 0,
+                    "growth": 0,
+                    "items": 0,
+                    "target": 100,
+                    "color": "#22c55e"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budaya/categories/{id}": {
+      "put": {
+        "summary": "Update Category",
+        "description": "Perbarui kategori berdasarkan ID (slug).",
+        "tags": [
+          "Categories"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "slug kategori",
+            "schema": {
+              "type": "string"
+            },
+            "example": "seni-pertunjukan"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryRequest"
+              },
+              "example": {
+                "target": 12000,
+                "color": "#0ea5e9"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Category updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Category"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": "seni-pertunjukan",
+                    "category": "Seni Pertunjukan",
+                    "sales": 8200,
+                    "growth": 15.2,
+                    "items": 450,
+                    "target": 12000,
+                    "color": "#0ea5e9"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Category",
+        "description": "Hapus kategori.",
+        "tags": [
+          "Categories"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "slug kategori",
+            "schema": {
+              "type": "string"
+            },
+            "example": "bahasa-daerah"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Category deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "example": {
+                  "ok": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budaya/items": {
+      "get": {
+        "summary": "List Items (Primer)",
+        "description": "Ambil item primer (bisa filter kategori / keyword).",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "name": "category",
+            "in": "query",
+            "description": "filter nama kategori",
+            "schema": {
+              "type": "string"
+            },
+            "example": "Seni Pertunjukan"
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "description": "pencarian bebas",
+            "schema": {
+              "type": "string"
+            },
+            "example": "tari"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Item"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": 1,
+                      "category": "Seni Pertunjukan",
+                      "item": "Tari Tradisional",
+                      "value": 1450,
+                      "region": "DIY",
+                      "growth": 12.3
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create Item",
+        "description": "Tambah satu item primer.",
+        "tags": [
+          "Items"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateItemRequest"
+              },
+              "example": {
+                "category": "Seni Pertunjukan",
+                "item": "Wayang Kulit",
+                "value": 980,
+                "region": "DIY",
+                "growth": 10.5
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Item created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Item"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": 99,
+                    "category": "Seni Pertunjukan",
+                    "item": "Wayang Kulit",
+                    "value": 980,
+                    "region": "DIY",
+                    "growth": 10.5
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/budaya/items/{id}": {
+      "put": {
+        "summary": "Update Item",
+        "description": "Perbarui item primer berdasarkan ID.",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID numeric",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 99
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateItemRequest"
+              },
+              "example": {
+                "value": 1100,
+                "growth": 12.1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Item updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Item"
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": 99,
+                    "category": "Seni Pertunjukan",
+                    "item": "Wayang Kulit",
+                    "value": 1100,
+                    "region": "DIY",
+                    "growth": 12.1
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete Item",
+        "description": "Hapus item primer.",
+        "tags": [
+          "Items"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID numeric",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 99
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Item deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  }
+                },
+                "example": {
+                  "ok": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contributions": {
+      "get": {
+        "summary": "List Contributions",
+        "description": "Ambil semua kontribusi komunitas untuk moderasi.",
+        "tags": [
+          "Contributions"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Contribution"
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": 101,
+                      "title": "Upacara Adat Wiwitan",
+                      "category": "Adat Istiadat",
+                      "region": "DIY",
+                      "contributor": "Komunitas Tani Sleman",
+                      "status": "pending",
+                      "attachments": 3,
+                      "createdAt": "2025-08-19T00:00:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contributions/{id}": {
+      "patch": {
+        "summary": "Set Contribution Status",
+        "description": "Setujui / tolak / pending kontribusi.",
+        "tags": [
+          "Contributions"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "ID numeric",
+            "schema": {
+              "type": "integer"
+            },
+            "example": 101
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "approved",
+                      "rejected"
+                    ],
+                    "description": "Status of the contribution"
+                  }
+                },
+                "required": [
+                  "status"
+                ]
+              },
+              "example": {
+                "status": "approved"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contribution status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "integer"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                },
+                "example": {
+                  "data": {
+                    "id": 101,
+                    "status": "approved"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Category": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique slug identifier for the category"
+          },
+          "category": {
+            "type": "string",
+            "description": "Display name of the category"
+          },
+          "sales": {
+            "type": "number",
+            "description": "Sales value for the category"
+          },
+          "growth": {
+            "type": "number",
+            "description": "Growth percentage"
+          },
+          "items": {
+            "type": "integer",
+            "description": "Number of items in this category"
+          },
+          "target": {
+            "type": "number",
+            "description": "Target value for the category"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for UI representation"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "item",
+          "value",
+          "region",
+          "growth"
+        ]
+      },
+      "CreateItemRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Category name this item belongs to"
+          },
+          "item": {
+            "type": "string",
+            "description": "Name of the cultural item"
+          },
+          "value": {
+            "type": "number",
+            "description": "Value associated with the item"
+          },
+          "region": {
+            "type": "string",
+            "description": "Region where this item originates"
+          },
+          "growth": {
+            "type": "number",
+            "description": "Growth percentage for this item"
+          }
+        },
+        "required": [
+          "category",
+          "item",
+          "value",
+          "region",
+          "growth"
+        ]
+      },
+      "UpdateItemRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Category name this item belongs to"
+          },
+          "item": {
+            "type": "string",
+            "description": "Name of the cultural item"
+          },
+          "value": {
+            "type": "number",
+            "description": "Value associated with the item"
+          },
+          "region": {
+            "type": "string",
+            "description": "Region where this item originates"
+          },
+          "growth": {
+            "type": "number",
+            "description": "Growth percentage for this item"
+          }
+        }
+      },
+      "Contribution": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique numeric identifier for the contribution"
+          },
+          "title": {
+            "type": "string",
+            "description": "Title of the contribution"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category of the cultural contribution"
+          },
+          "region": {
+            "type": "string",
+            "description": "Region associated with the contribution"
+          },
+          "contributor": {
+            "type": "string",
+            "description": "Name of the contributor"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "approved",
+              "rejected"
+            ],
+            "description": "Current status of the contribution"
+          },
+          "attachments": {
+            "type": "integer",
+            "description": "Number of attachments"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Creation timestamp"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "category",
+          "region",
+          "contributor",
+          "status",
+          "attachments",
+          "createdAt"
+        ]
+      },
+      "CreateCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Display name of the category"
+          },
+          "sales": {
+            "type": "number",
+            "description": "Initial sales value"
+          },
+          "growth": {
+            "type": "number",
+            "description": "Initial growth percentage"
+          },
+          "items": {
+            "type": "integer",
+            "description": "Initial number of items"
+          },
+          "target": {
+            "type": "number",
+            "description": "Target value for the category"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for UI representation"
+          }
+        },
+        "required": [
+          "category",
+          "sales",
+          "growth",
+          "items",
+          "target",
+          "color"
+        ]
+      },
+      "UpdateCategoryRequest": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Display name of the category"
+          },
+          "sales": {
+            "type": "number",
+            "description": "Sales value for the category"
+          },
+          "growth": {
+            "type": "number",
+            "description": "Growth percentage"
+          },
+          "items": {
+            "type": "integer",
+            "description": "Number of items in this category"
+          },
+          "target": {
+            "type": "number",
+            "description": "Target value for the category"
+          },
+          "color": {
+            "type": "string",
+            "description": "Hex color code for UI representation"
+          }
+        }
+      },
+      "Item": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique numeric identifier for the item"
+          },
+          "category": {
+            "type": "string",
+            "description": "Category name this item belongs to"
+          },
+          "item": {
+            "type": "string",
+            "description": "Name of the cultural item"
+          },
+          "value": {
+            "type": "number",
+            "description": "Value associated with the item"
+          },
+          "region": {
+            "type": "string",
+            "description": "Region where this item originates"
+          },
+          "growth": {
+            "type": "number",
+            "description": "Growth percentage for this item"
+          }
+        },
+        "required": [
+          "id",
+          "category",
+          "item",
+          "value",
+          "region",
+          "growth"
+        ]
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Categories",
+      "description": "Operations related to cultural categories"
+    },
+    {
+      "name": "Items",
+      "description": "Operations related to cultural items (primer)"
+    },
+    {
+      "name": "Contributions",
+      "description": "Operations related to community contributions and moderation"
+    }
+  ]
+}
