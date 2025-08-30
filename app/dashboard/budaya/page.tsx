@@ -1,25 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/insights-ui";
 import {
-  Plus, Pencil, Trash2, Save, X, Search, Download, Layers, Tags
+  Plus, Pencil, Trash2, Save, X, Search, Download, Layers, Tags, Loader2, AlertCircle
 } from "lucide-react";
 import {
-  kategoriBudaya as initKategori,
-  tabelDetail as initItems,
   Category,
   DetailedItem,
 } from "@/lib/budaya--data";
+import { categoriesApi, itemsApi, ApiError } from "@/lib/budaya-api";
 
 type Tab = "items" | "kategori";
+
+type CategoryWithId = Category & { id: string };
 
 export default function BudayaEditorPage() {
   const [tab, setTab] = useState<Tab>("items");
 
   // state utama
-  const [items, setItems] = useState<DetailedItem[]>(initItems);
-  const [kategori, setKategori] = useState<Category[]>(initKategori);
+  const [items, setItems] = useState<DetailedItem[]>([]);
+  const [kategori, setKategori] = useState<CategoryWithId[]>([]);
+
+  // loading & error states
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
+  const [actionLoading, setActionLoading] = useState<string>("");
 
   // filter & search
   const [selectedKategori, setSelectedKategori] = useState<string>("__ALL__");
@@ -27,9 +33,34 @@ export default function BudayaEditorPage() {
 
   // modal state
   const [editing, setEditing] = useState<DetailedItem | null>(null);
-  const [editingKat, setEditingKat] = useState<Category | null>(null);
+  const [editingKat, setEditingKat] = useState<CategoryWithId | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [confirmKat, setConfirmKat] = useState<string | null>(null);
+
+  // Load initial data
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [categoriesData, itemsData] = await Promise.all([
+        categoriesApi.list(),
+        itemsApi.list()
+      ]);
+
+      setKategori(categoriesData);
+      setItems(itemsData);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to load data");
+      console.error("Failed to load data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredItems = useMemo(() => {
     const kw = q.trim().toLowerCase();
@@ -43,6 +74,92 @@ export default function BudayaEditorPage() {
       return byKat && byKw;
     });
   }, [items, q, selectedKategori]);
+
+  // ===== API Functions =====
+  const handleSaveItem = async (item: DetailedItem) => {
+    try {
+      setActionLoading("Saving item...");
+
+      if (items.some(i => i.id === item.id)) {
+        // Update existing item
+        const { id, ...updates } = item;
+        await itemsApi.update(id, updates);
+        setItems(prev => prev.map(i => i.id === id ? item : i));
+      } else {
+        // Create new item
+        const { id, ...newItem } = item;
+        const created = await itemsApi.create(newItem);
+        setItems(prev => [...prev, created]);
+      }
+
+      setEditing(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to save item");
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleDeleteItem = async (id: number) => {
+    try {
+      setActionLoading("Deleting item...");
+      await itemsApi.delete(id);
+      setItems(prev => prev.filter(i => i.id !== id));
+      setConfirmId(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete item");
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleSaveCategory = async (category: CategoryWithId) => {
+    try {
+      setActionLoading("Saving category...");
+
+      const isExisting = editingKat && kategori.some(k => k.id === editingKat.id);
+
+      if (isExisting) {
+        // Update existing category
+        const { id, ...updates } = category;
+        await categoriesApi.update(id, updates);
+        setKategori(prev => prev.map(k => k.id === id ? category : k));
+
+        // Update category name in items if changed
+        if (editingKat && category.category !== editingKat.category) {
+          setItems(prev => prev.map(item =>
+            item.category === editingKat.category
+              ? { ...item, category: category.category }
+              : item
+          ));
+        }
+      } else {
+        // Create new category
+        const { id, ...newCategory } = category;
+        const created = await categoriesApi.create(newCategory);
+        setKategori(prev => [...prev, created]);
+      }
+
+      setEditingKat(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to save category");
+    } finally {
+      setActionLoading("");
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    try {
+      setActionLoading("Deleting category...");
+      await categoriesApi.delete(id);
+      setKategori(prev => prev.filter(k => k.id !== id));
+      setConfirmKat(null);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete category");
+    } finally {
+      setActionLoading("");
+    }
+  };
 
   // ===== Utils
   const nextItemId = () => (items.length ? Math.max(...items.map((i) => i.id)) + 1 : 1);
@@ -72,15 +189,54 @@ export default function BudayaEditorPage() {
     URL.revokeObjectURL(url);
   };
 
+  if (loading) {
+    return (
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin" />
+          <span className="ml-2 text-gray-600 dark:text-gray-400">Loading data...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Error Alert */}
+      {error && (
+        <div className="mb-4 rounded-md bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4">
+          <div className="flex">
+            <AlertCircle className="h-5 w-5 text-red-400" />
+            <div className="ml-3">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+              <button
+                onClick={() => setError("")}
+                className="mt-2 text-xs text-red-600 dark:text-red-400 underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Loading */}
+      {actionLoading && (
+        <div className="mb-4 rounded-md bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-4">
+          <div className="flex items-center">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
+            <span className="ml-2 text-sm text-blue-800 dark:text-blue-200">{actionLoading}</span>
+          </div>
+        </div>
+      )}
+
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-gray-100">
             Edit Data Budaya
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
-            Kelola data primer (items) & kategori. Perubahan saat ini hanya di memori—hubungkan ke API untuk persist.
+            Kelola data primer (items) & kategori. Data tersinkron dengan backend API.
           </p>
         </div>
 
@@ -144,7 +300,8 @@ export default function BudayaEditorPage() {
                     revenue: undefined,
                   })
                 }
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                disabled={!!actionLoading}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" /> Tambah
               </button>
@@ -192,13 +349,15 @@ export default function BudayaEditorPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setEditing({ ...row })}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            disabled={!!actionLoading}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                           >
                             <Pencil className="h-3.5 w-3.5" /> Edit
                           </button>
                           <button
                             onClick={() => setConfirmId(row.id)}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/20"
+                            disabled={!!actionLoading}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/20 disabled:opacity-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Hapus
                           </button>
@@ -226,6 +385,7 @@ export default function BudayaEditorPage() {
               <button
                 onClick={() =>
                   setEditingKat({
+                    id: "",
                     category: "",
                     sales: 0,
                     growth: 0,
@@ -234,7 +394,8 @@ export default function BudayaEditorPage() {
                     color: "#60a5fa",
                   })
                 }
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+                disabled={!!actionLoading}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
               >
                 <Plus className="h-4 w-4" /> Tambah
               </button>
@@ -277,13 +438,15 @@ export default function BudayaEditorPage() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => setEditingKat({ ...k })}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700"
+                            disabled={!!actionLoading}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                           >
                             <Pencil className="h-3.5 w-3.5" /> Edit
                           </button>
                           <button
                             onClick={() => setConfirmKat(k.category)}
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/20"
+                            disabled={!!actionLoading}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/20 disabled:opacity-50"
                           >
                             <Trash2 className="h-3.5 w-3.5" /> Hapus
                           </button>
@@ -314,13 +477,8 @@ export default function BudayaEditorPage() {
             value={editing}
             kategoriOptions={kategori.map((k) => k.category)}
             onCancel={() => setEditing(null)}
-            onSave={(val) => {
-              setItems((prev) => {
-                const exists = prev.some((p) => p.id === val.id);
-                return exists ? prev.map((p) => (p.id === val.id ? val : p)) : [...prev, val];
-              });
-              setEditing(null);
-            }}
+            onSave={handleSaveItem}
+            loading={!!actionLoading}
           />
         </Modal>
       )}
@@ -330,10 +488,8 @@ export default function BudayaEditorPage() {
         <Confirm
           text="Hapus item ini? Tindakan tidak bisa dibatalkan."
           onCancel={() => setConfirmId(null)}
-          onConfirm={() => {
-            setItems((prev) => prev.filter((p) => p.id !== confirmId));
-            setConfirmId(null);
-          }}
+          onConfirm={() => handleDeleteItem(confirmId)}
+          loading={!!actionLoading}
         />
       )}
 
@@ -343,22 +499,8 @@ export default function BudayaEditorPage() {
           <KategoriForm
             value={editingKat}
             onCancel={() => setEditingKat(null)}
-            onSave={(val) => {
-              setKategori((prev) => {
-                const exists = prev.some((p) => p.category === editingKat.category);
-                // rename kategori juga harus memantulkan ke items
-                if (exists && val.category !== editingKat.category) {
-                  setItems((old) =>
-                    old.map((it) => (it.category === editingKat.category ? { ...it, category: val.category } : it))
-                  );
-                }
-                const next = exists
-                  ? prev.map((p) => (p.category === editingKat.category ? val : p))
-                  : [...prev, val];
-                return next;
-              });
-              setEditingKat(null);
-            }}
+            onSave={handleSaveCategory}
+            loading={!!actionLoading}
           />
         </Modal>
       )}
@@ -369,9 +511,10 @@ export default function BudayaEditorPage() {
           text={`Hapus kategori "${confirmKat}"? Item yang memakai kategori ini tidak ikut dihapus.`}
           onCancel={() => setConfirmKat(null)}
           onConfirm={() => {
-            setKategori((prev) => prev.filter((k) => k.category !== confirmKat));
-            setConfirmKat(null);
+            const cat = kategori.find(k => k.category === confirmKat);
+            if (cat) handleDeleteCategory(cat.id);
           }}
+          loading={!!actionLoading}
         />
       )}
     </div>
@@ -412,10 +555,12 @@ function Confirm({
   text,
   onCancel,
   onConfirm,
+  loading = false,
 }: Readonly<{
   text: string;
   onCancel: () => void;
   onConfirm: () => void;
+  loading?: boolean;
 }>) {
   return (
     <Modal title="Konfirmasi" onClose={onCancel}>
@@ -423,15 +568,18 @@ function Confirm({
       <div className="flex justify-end gap-2">
         <button
           onClick={onCancel}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
         >
           Batal
         </button>
         <button
           onClick={onConfirm}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/20"
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-red-300 text-red-600 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/20 disabled:opacity-50"
         >
-          <Trash2 className="h-4 w-4" /> Hapus
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          Hapus
         </button>
       </div>
     </Modal>
@@ -443,11 +591,13 @@ function ItemForm({
   kategoriOptions,
   onCancel,
   onSave,
+  loading = false,
 }: Readonly<{
   value: DetailedItem;
   kategoriOptions: string[];
   onCancel: () => void;
   onSave: (val: DetailedItem) => void;
+  loading?: boolean;
 }>) {
   const [form, setForm] = useState<DetailedItem>(value);
   const set = <K extends keyof DetailedItem,>(k: K, v: DetailedItem[K]) => setForm((f) => ({ ...f, [k]: v }));
@@ -537,16 +687,18 @@ function ItemForm({
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
         >
           Batal
         </button>
         <button
           type="submit"
-          disabled={!valid}
+          disabled={!valid || loading}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-emerald-300 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-900/20 disabled:opacity-50"
         >
-          <Save className="h-4 w-4" /> Simpan
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Simpan
         </button>
       </div>
     </form>
@@ -557,13 +709,15 @@ function KategoriForm({
   value,
   onCancel,
   onSave,
+  loading = false,
 }: Readonly<{
-  value: Category;
+  value: CategoryWithId;
   onCancel: () => void;
-  onSave: (val: Category) => void;
+  onSave: (val: CategoryWithId) => void;
+  loading?: boolean;
 }>) {
-  const [form, setForm] = useState<Category>(value);
-  const set = <K extends keyof Category,>(k: K, v: Category[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const [form, setForm] = useState<CategoryWithId>(value);
+  const set = <K extends keyof CategoryWithId,>(k: K, v: CategoryWithId[K]) => setForm((f) => ({ ...f, [k]: v }));
   const valid = form.category.trim().length > 0;
 
   return (
@@ -645,16 +799,18 @@ function KategoriForm({
         <button
           type="button"
           onClick={onCancel}
-          className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700"
+          disabled={loading}
+          className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
         >
           Batal
         </button>
         <button
           type="submit"
-          disabled={!valid}
+          disabled={!valid || loading}
           className="inline-flex items-center gap-2 px-3 py-2 rounded-md text-sm border border-emerald-300 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:border-emerald-700 dark:hover:bg-emerald-900/20 disabled:opacity-50"
         >
-          <Save className="h-4 w-4" /> Simpan
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Simpan
         </button>
       </div>
     </form>
