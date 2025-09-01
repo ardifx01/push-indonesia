@@ -4,7 +4,9 @@ const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:330
 
 // Types for API responses
 type ApiResponse<T> = {
-    data: T;
+    content: T;
+    err?: any;
+    status?: string;
 };
 
 type CategoryResponse = Category & { id: string };
@@ -40,7 +42,7 @@ export const categoriesApi = {
     // GET /api/budaya/categories
     list: async (): Promise<CategoryResponse[]> => {
         const response = await apiCall<ApiResponse<CategoryResponse[]>>("/api/budaya/categories");
-        return response.data;
+        return response.content;
     },
 
     // POST /api/budaya/categories
@@ -49,7 +51,7 @@ export const categoriesApi = {
             method: "POST",
             body: JSON.stringify(category),
         });
-        return response.data;
+        return response.content;
     },
 
     // PUT /api/budaya/categories/{id}
@@ -58,7 +60,7 @@ export const categoriesApi = {
             method: "PUT",
             body: JSON.stringify(updates),
         });
-        return response.data;
+        return response.content;
     },
 
     // DELETE /api/budaya/categories/{id}
@@ -81,7 +83,7 @@ export const itemsApi = {
         const endpoint = queryString ? `/api/budaya/items?${queryString}` : "/api/budaya/items";
 
         const response = await apiCall<ApiResponse<ItemResponse[]>>(endpoint);
-        return response.data;
+        return response.content;
     },
 
     // POST /api/budaya/items
@@ -90,7 +92,7 @@ export const itemsApi = {
             method: "POST",
             body: JSON.stringify(item),
         });
-        return response.data;
+        return response.content;
     },
 
     // PUT /api/budaya/items/{id}
@@ -99,7 +101,7 @@ export const itemsApi = {
             method: "PUT",
             body: JSON.stringify(updates),
         });
-        return response.data;
+        return response.content;
     },
 
     // DELETE /api/budaya/items/{id}
