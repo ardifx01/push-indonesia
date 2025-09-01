@@ -20,8 +20,8 @@ export default function MySubmissionsTable({
   rows,
   onAction,
 }: {
-  rows: CommunityContribution[];
-  onAction: (type: "view" | "edit" | "resubmit", row: CommunityContribution) => void;
+  readonly rows: CommunityContribution[];
+  readonly onAction: (type: "view" | "edit" | "resubmit", row: CommunityContribution) => void;
 }) {
   const [q, setQ] = useState("");
 
@@ -87,14 +87,14 @@ export default function MySubmissionsTable({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex justify-end gap-2">
-                    <button onClick={() => onAction("view", r)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <button onClick={() => onAction("view", r)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:cursor-pointer">
                       <Eye className="h-3.5 w-3.5" /> Lihat
                     </button>
-                    <button onClick={() => onAction("edit", r)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-blue-300 text-blue-700 dark:text-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20">
+                    <button onClick={() => onAction("edit", r)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-blue-300 text-blue-700 dark:text-blue-300 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:cursor-pointer">
                       <Edit3 className="h-3.5 w-3.5" /> Edit
                     </button>
                     {r.status === "rejected" && (
-                      <button onClick={() => onAction("resubmit", r)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-amber-300 text-amber-700 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20">
+                      <button onClick={() => onAction("resubmit", r)} className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs border border-amber-300 text-amber-700 dark:text-amber-300 dark:border-amber-700 hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:cursor-pointer">
                         <RefreshCw className="h-3.5 w-3.5" /> Ajukan Ulang
                       </button>
                     )}
@@ -112,6 +112,6 @@ export default function MySubmissionsTable({
           </tbody>
         </table>
       </div>
-    </div>
+    </div >
   );
 }
