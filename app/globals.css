@@ -1,9 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/* @import "../styles/theme.css"; */
-@import "../styles/shadcn.css";
-
 /* dark variant via class .dark di <html> */
 @custom-variant dark (&:is(.dark *));
 

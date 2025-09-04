@@ -1,304 +1,269 @@
 // app/premium/page.tsx
 "use client";
 
-
-import React, { useMemo, useState, useEffect } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import React, { useMemo, useState } from "react";
 import {
-  LineChart,
-  Line,
+  ResponsiveContainer,
+  CartesianGrid,
   XAxis,
   YAxis,
-  CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
+  Legend,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
 } from "recharts";
-import { Users, Shield, DollarSign, TrendingUp } from "lucide-react";
+import { Card, CardHeader, CardContent, CardTitle } from "@/components/insights-ui";
 
-import {
-  Card,
-  CardHeader,
-  CardContent,
-  CardTitle,
-  Stat,
-} from "@/components/insights-ui";
+/* ============ CONFIG ============ */
+const COLORS = ["#3b82f6","#ef4444","#22c55e","#a855f7","#f59e0b"]; // max 5 term
+const MAX_TERMS = 5;
+const PROVINSI = [
+  "Aceh","Sumatera Utara","Sumatera Barat","Riau","Jambi","Sumatera Selatan","Bengkulu","Lampung",
+  "DKI Jakarta","Jawa Barat","Jawa Tengah","DI Yogyakarta","Jawa Timur","Banten","Bali","NTB","NTT",
+  "Kalimantan Barat","Kalimantan Timur","Sulawesi Selatan"
+];
+type Range = "7d"|"30d"|"90d"|"12m";
 
-import CategoryDistribution, {
-  CategoryDatum,
-  type Orientation,
-} from "@/components/charts/premium/CategoryDistribution";
+/* ============ MOCK DATA (deterministik dari teks) ============ */
+/** buat angka yang konsisten per kata, tanpa server */
+function seed(str:string){ let h=0; for (let i=0;i<str.length;i++) h=(h*31+str.charCodeAt(i))>>>0; return h||1; }
+function rnd(seed:number){ // mulberry32
+  return () => ( (seed = (seed + 0x6D2B79F5) | 0, ((seed ^ (seed >>> 15)) * (1 | seed)) >>> 0) / 2**32 );
+}
+/** bikin bulan/minggu label sesuai range */
+function labels(range:Range){
+  const now = new Date();
+  const pts = range==="7d"?7:range==="30d"?30:range==="90d"?13:12; // 90d=13 minggu
+  const arr:string[]=[];
+  if(range==="90d"){ // minggu
+    for(let i=pts-1;i>=0;i--) arr.push(`M-${i}`);
+  }else if(range==="7d" || range==="30d"){ // hari
+    for(let i=pts-1;i>=0;i--){
+      const d=new Date(now); d.setDate(now.getDate()-i);
+      arr.push(`${d.getMonth()+1}/${d.getDate()}`);
+    }
+  }else{ // 12m
+    for(let i=11;i>=0;i--){
+      const d=new Date(now); d.setMonth(now.getMonth()-i);
+      arr.push(d.toLocaleString("id-ID",{month:"short"}));
+    }
+  }
+  return arr;
+}
+/** interest over time: 0..100 skala like trends */
+function seriesForTerm(term:string, range:Range){
+  const r = rnd(seed(term+range));
+  const xs = labels(range);
+  let base = 40 + Math.floor(r()*40); // baseline
+  return xs.map((label,i)=>{
+    base = Math.max(10, Math.min(100, base + Math.floor(r()*14-7))); // random walk
+    // sedikit musiman
+    const seasonal = range==="12m" ? Math.round(8*Math.sin(i/2)) : 0;
+    const value = Math.max(0, Math.min(100, base + seasonal));
+    return { time: label, value };
+  });
+}
+/** interest by region untuk 1 term (top 10) */
+function regionsForTerm(term:string){
+  const rand = rnd(seed("region-"+term));
+  const data = PROVINSI.map(p=>({ region:p, value: Math.round(20 + rand()*80) }));
+  return data.sort((a,b)=>b.value-a.value).slice(0,10);
+}
+/** related queries */
+function relatedQueries(term:string){
+  const base = term.toLowerCase().replace(/\s+/g,"-");
+  const r = rnd(seed("rq-"+term));
+  const mk = (i:number)=>({
+    query: `${term} ${["adalah","tradisi","asal","sejarah","contoh","festival","lagu","makanan","tarian","musik"][i%10]}`,
+    value: Math.round(50 + r()*50),
+    growth: Math.round(30 + r()*160), // %
+  });
+  const top = Array.from({length:8},(_,i)=>mk(i)).sort((a,b)=>b.value-a.value);
+  const rising = Array.from({length:8},(_,i)=>mk(i+8)).sort((a,b)=>b.growth-a.growth);
+  return { top, rising };
+}
 
-import {
-  kategoriBudaya,
-  kunjunganBulanan,
-  sumberDataSekunder,
-  tabelDetail,
-} from "@/lib/budaya--data";
+/* ============ UI ============ */
+type Term = { label:string; color:string };
 
-type TimeRange = "7d" | "30d" | "90d";
-type ViewMode = "charts" | "table";
+export default function TrendsOverview() {
+  const [terms, setTerms] = useState<Term[]>([
+    { label:"kuliner khas", color: COLORS[0] },
+    { label:"adat istiadat", color: COLORS[1] },
+  ]);
+  const [input, setInput] = useState("");
+  const [range, setRange] = useState<Range>("12m");
+  const [active, setActive] = useState(0); // index term yang dipakai untuk "region" + "related"
 
-export default function PremiumDashboardPage() {
-  const search = useSearchParams();
-  const router = useRouter();
+  const canAdd = input.trim().length>0 && terms.length<MAX_TERMS && !terms.some(t=>t.label.toLowerCase()===input.trim().toLowerCase());
 
-  const initialMode = (search.get("mode") === "table" ? "table" : "charts") as ViewMode;
-  const [mode, setMode] = useState<ViewMode>(initialMode);
-  const [range, setRange] = useState<TimeRange>("30d");
-  const [orientation, setOrientation] = useState<Orientation>("vertical");
+  const timeData = useMemo(()=>{
+    const xs = labels(range);
+    // gabung semua term ke satu dataset utk LineChart (field per term)
+    const rows = xs.map(x=>({ time:x } as any));
+    terms.forEach((t)=>{
+      const s = seriesForTerm(t.label, range);
+      s.forEach((p,i)=> rows[i][t.label] = p.value);
+    });
+    return rows;
+  },[terms,range]);
 
-  useEffect(() => {
-    const m = search.get("mode");
-    setMode(m === "table" ? "table" : "charts");
-  }, [search]);
-
-  const setModeAndUrl = (m: ViewMode) => {
-    router.replace(`/premium${m === "table" ? "?mode=table" : "?mode=charts"}`);
-    setMode(m);
-  };
-
-  // KPI mock
-  const kpis = useMemo(
-    () => ({
-      penelitiAktif: 824,
-      instansiTerdaftar: 112,
-      dokPublikasi: 486,
-      konversiInsight: 3.4,
-    }),
-    []
-  );
-
-  // === Data untuk komponen grafik kategori (dinormalisasi) ===
-  const kategoriData: CategoryDatum[] = useMemo(
-    () =>
-      (kategoriBudaya || []).map((k) => ({
-        category: k.category,
-        // normalisasi: bisa dari sales/items/value
-        sales: (k as any).sales ?? (k as any).items ?? (k as any).value ?? 0,
-        growth: k.growth ?? 0,
-        color: k.color ?? "#60a5fa",
-      })),
-    []
-  );
-  
+  const regionData = useMemo(()=> regionsForTerm(terms[active]?.label ?? "all"),[terms,active]);
+  const rq = useMemo(()=> relatedQueries(terms[active]?.label ?? "all"),[terms,active]);
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Toolbar ringkas */}
-      <div className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-gray-600 dark:text-gray-400">
-        </div>
-        <div className="flex items-center gap-2">
-          <label htmlFor="range-user" className="text-xs text-gray-600 dark:text-gray-400">
-            Rentang
-          </label>
-          <select
-            id="range-user"
-            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1 text-xs"
-            value={range}
-            onChange={(e) => setRange(e.target.value as TimeRange)}
-          >
-            <option value="7d">7 hari</option>
-            <option value="30d">30 hari</option>
-            <option value="90d">90 hari</option>
-          </select>
-
-          <div className="ml-2 flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-            <button
-              onClick={() => setModeAndUrl("charts")}
-              className={`px-2 py-1 rounded-md text-xs ${
-                mode === "charts"
-                  ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400"
-              }`}
-            >
-              Charts
-            </button>
-            <button
-              onClick={() => setModeAndUrl("table")}
-              className={`px-2 py-1 rounded-md text-xs ${
-                mode === "table"
-                  ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
-                  : "text-gray-600 dark:text-gray-400"
-              }`}
-            >
-              Cards
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Stat icon={Users} label="Peneliti Aktif" value={kpis.penelitiAktif.toLocaleString("id-ID")} color="text-blue-500" />
-        <Stat icon={Shield} label="Instansi Terdaftar" value={kpis.instansiTerdaftar} color="text-emerald-500" />
-        <Stat icon={DollarSign} label="Publikasi (YTD)" value={kpis.dokPublikasi} color="text-purple-500" />
-        <Stat icon={TrendingUp} label="Konversi Insight" value={`${kpis.konversiInsight}%`} hint="unduhan → sitasi" color="text-orange-500" />
-      </div>
-
-      {mode === "charts" ? (
-        <div className="grid grid-cols-1 gap-6 mt-6">
-          {/* Partisipasi Event */}
-          <Card>
-            <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-              <CardTitle>Partisipasi Event Budaya (Bulanan)</CardTitle>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={kunjunganBulanan} margin={{ left: 12, right: 12 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2b3546" />
-                    <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#9aa4b2", fontSize: 12 }} />
-                    <YAxis
-                      tickLine={false}
-                      axisLine={false}
-                      width={60}
-                      tick={{ fill: "#9aa4b2", fontSize: 12 }}
-                      tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`}
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="value"
-                      stroke="#7aa2ff"
-                      strokeWidth={3}
-                      dot={{ fill: "#7aa2ff", r: 3 }}
-                      activeDot={{ r: 5, fill: "#7aa2ff", stroke: "#fff", strokeWidth: 2 }}
-                    />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "rgb(15 23 42)",
-                        border: "1px solid #334155",
-                        borderRadius: 8,
-                        color: "#e2e8f0",
-                      }}
-                      labelStyle={{ color: "#e2e8f0", fontWeight: 600 }}
-                      formatter={(raw: unknown) => [
-                        `${Number(raw as number).toLocaleString("id-ID")} partisipasi`,
-                        "Total",
-                      ]}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Distribusi Kategori (dengan toggle orientasi) */}
-          <Card>
-            <CardHeader className="flex items-start justify-between border-b border-gray-200 dark:border-gray-700">
-              <CardTitle>Distribusi Kategori (Primer)</CardTitle>
-              <div className="bg-gray-100 dark:bg-gray-800 p-1 rounded-md text-xs">
-                <button
-                  onClick={() => setOrientation("vertical")}
-                  className={`px-2 py-1 rounded ${
-                    orientation === "vertical"
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
-                      : "text-gray-600 dark:text-gray-400"
-                  }`}
-                >
-                  Vertical
-                </button>
-                <button
-                  onClick={() => setOrientation("horizontal")}
-                  className={`px-2 py-1 rounded ${
-                    orientation === "horizontal"
-                      ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm"
-                      : "text-gray-600 dark:text-gray-400"
-                  }`}
-                >
-                  Horizontal
-                </button>
-              </div>
-            </CardHeader>
-            <CardContent className="pt-6">
-              <CategoryDistribution data={kategoriData} orientation={orientation} height={320} />
-              
-            </CardContent>
-          </Card>
-
-          {/* Tabel detail */}
-          <Card>
-            <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-              <CardTitle>Detail Primer (Table)</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">#</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Kategori</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Item</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Nilai</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Wilayah</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Growth</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                    {tabelDetail.map((row, i) => (
-                      <tr key={row.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                        <td className="px-6 py-3 text-gray-900 dark:text-gray-100 font-medium">{i + 1}</td>
-                        <td className="px-6 py-3">
-                          <span className="inline-flex items-center gap-2 text-gray-900 dark:text-gray-100 font-medium">
-                            <span
-                              className="w-3 h-3 rounded-sm"
-                              style={{
-                                background:
-                                  kategoriBudaya.find((k) => k.category === row.category)?.color ||
-                                  "#6b7280",
-                              }}
-                            />
-                            {row.category}
-                          </span>
-                        </td>
-                        <td className="px-6 py-3 text-gray-700 dark:text-gray-300">{row.item}</td>
-                        <td className="px-6 py-3 text-gray-900 dark:text-gray-100 font-semibold">
-                          {row.value.toLocaleString("id-ID")}
-                        </td>
-                        <td className="px-6 py-3 text-gray-600 dark:text-gray-400">{row.region}</td>
-                        <td
-                          className={`px-6 py-3 font-medium ${
-                            row.growth >= 10 ? "text-green-600" : "text-orange-500"
-                          }`}
-                        >
-                          +{row.growth}%
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        // === Cards (Sekunder) ===
-        <Card className="mt-6">
-          <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-            <CardTitle>Data Sekunder (Cards)</CardTitle>
-            <p className="text-sm text-gray-600 dark:text-gray-400">Ringkas, klik ke sumber</p>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {sumberDataSekunder.map((s) => (
-                <Card key={s.id}>
-                  <CardHeader>
-                    <CardTitle className="text-sm">{s.title}</CardTitle>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{s.org}</p>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-3">
-                      {s.summary}
-                    </p>
-                    <a href={s.url} className="text-xs text-blue-500 hover:underline">
-                      Ke sumber →
-                    </a>
-                  </CardContent>
-                </Card>
+      <Card>
+        <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+          <CardTitle>Overview · Google-Trends-style</CardTitle>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Bandingkan minat pencarian beberapa topik, lihat wilayah teratas, dan kueri terkait.</p>
+        </CardHeader>
+        <CardContent className="pt-4">
+          {/* Controls */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              {terms.map((t,i)=>(
+                <span key={t.label} className={`inline-flex items-center gap-2 px-2 py-1 rounded-md text-xs border cursor-pointer ${i===active?"border-blue-500":"border-gray-300"}`}
+                      onClick={()=>setActive(i)}>
+                  <span className="w-2.5 h-2.5 rounded-sm" style={{background:t.color}} />
+                  {t.label}
+                  <button className="ml-1 text-gray-400 hover:text-red-500"
+                          onClick={(e)=>{e.stopPropagation(); setTerms(s=>s.filter(x=>x.label!==t.label)); setActive(0);}}>
+                    ×
+                  </button>
+                </span>
               ))}
+              <form
+                onSubmit={(e)=>{ e.preventDefault(); if(canAdd){ setTerms(s=>[...s,{label:input.trim(), color: COLORS[s.length%COLORS.length]}]); setInput(""); }}}
+                className="flex items-center gap-2"
+              >
+                <input
+                  value={input}
+                  onChange={(e)=>setInput(e.target.value)}
+                  placeholder={terms.length>=MAX_TERMS ? "Maks 5 kata kunci" : "Tambah kata kunci…"}
+                  disabled={terms.length>=MAX_TERMS}
+                  className="h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm px-2"
+                />
+                <button
+                  type="submit"
+                  disabled={!canAdd}
+                  className={`h-8 px-3 rounded-md text-xs ${canAdd?"bg-blue-600 text-white":"bg-gray-200 text-gray-500"}`}
+                >
+                  Tambah
+                </button>
+              </form>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600 dark:text-gray-400">Rentang</label>
+              <select
+                value={range}
+                onChange={(e)=>setRange(e.target.value as Range)}
+                className="h-8 rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-xs px-2"
+              >
+                <option value="7d">7 hari</option>
+                <option value="30d">30 hari</option>
+                <option value="90d">90 hari</option>
+                <option value="12m">12 bulan</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Interest over time */}
+          <div className="mt-6 h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={timeData} margin={{ left: 12, right: 12 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="time" tickLine={false} axisLine={false} />
+                <YAxis width={40} domain={[0,100]} />
+                {terms.map((t)=>(
+                  <Line key={t.label} type="monotone" dataKey={t.label} stroke={t.color} strokeWidth={2.5} dot={false}
+                        activeDot={{ r:5, fill:t.color, stroke:"#fff", strokeWidth:2 }} />
+                ))}
+                <Tooltip<number,string> formatter={(v,n)=>[`${v}`, String(n)]} />
+                <Legend />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Interest by region + Related queries */}
+          <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+                <CardTitle>Interest by region · <span className="text-blue-600">{terms[active]?.label ?? "-"}</span></CardTitle>
+              </CardHeader>
+              <CardContent className="pt-6">
+                <div className="h-80">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={regionData} layout="vertical" margin={{ left: 12, right: 12 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" domain={[0,100]} />
+                      <YAxis type="category" dataKey="region" width={160} />
+                      <Tooltip<number,string> formatter={(v)=>[`${v}`, "Skor"]} />
+                      <Bar dataKey="value" fill={terms[active]?.color ?? COLORS[0]} radius={[4,4,4,4]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="border-b border-gray-200 dark:border-gray-700">
+                <CardTitle>Related queries · <span className="text-blue-600">{terms[active]?.label ?? "-"}</span></CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <TabsRQ top={rq.top} rising={rq.rising} />
+              </CardContent>
+            </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ===== Related Queries Tabs ===== */
+function TabsRQ({ top, rising }:{ top:{query:string;value:number}[]; rising:{query:string;growth:number}[]; }){
+  const [tab,setTab] = useState<"top"|"rising">("top");
+  return (
+    <div>
+      <div className="inline-flex rounded-md border border-gray-300 overflow-hidden">
+        <button onClick={()=>setTab("top")}
+          className={`px-3 py-1 text-xs ${tab==="top"?"bg-gray-100":"bg-white"}`}>Top</button>
+        <button onClick={()=>setTab("rising")}
+          className={`px-3 py-1 text-xs ${tab==="rising"?"bg-gray-100":"bg-white"}`}>Rising</button>
+      </div>
+
+      {tab==="top" ? (
+        <table className="mt-3 w-full text-sm">
+          <thead className="text-xs text-gray-500">
+            <tr><th className="text-left py-1">Query</th><th className="text-right py-1 pr-2">Skor</th></tr>
+          </thead>
+          <tbody>
+            {top.map((r,i)=>(
+              <tr key={i} className="border-t">
+                <td className="py-2">{r.query}</td>
+                <td className="py-2 text-right pr-2">{r.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <table className="mt-3 w-full text-sm">
+          <thead className="text-xs text-gray-500">
+            <tr><th className="text-left py-1">Query</th><th className="text-right py-1 pr-2">Rising</th></tr>
+          </thead>
+          <tbody>
+            {rising.map((r,i)=>(
+              <tr key={i} className="border-t">
+                <td className="py-2">{r.query}</td>
+                <td className="py-2 text-right pr-2">+{r.growth}%</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   );
