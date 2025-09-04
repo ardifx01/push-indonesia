@@ -20,10 +20,6 @@ import {
 } from "recharts";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/insights-ui";
 
-/** ----- View state ----- */
-type TimeRange = "7d" | "30d" | "90d";
-type ViewMode = "charts" | "table";
-
 /** ----- Data tren (dipakai untuk snapshot pie) ----- */
 const trendBudaya = [
   { month: "Jan", adat: 92,  seniPertunjukan: 80,  permainanRakyat: 64,  kulinerKhas: 120, pakaianAdat: 70,  seniRupaKerajinan: 78,  ceritaRakyat: 55,  bangunanTrad: 66,  bahasaAksara: 50 },
@@ -39,7 +35,6 @@ const trendBudaya = [
   { month: "Nov", adat: 116, seniPertunjukan: 92,  permainanRakyat: 72,  kulinerKhas: 147, pakaianAdat: 83,  seniRupaKerajinan: 95,  ceritaRakyat: 64,  bangunanTrad: 78,  bahasaAksara: 61 },
   { month: "Des", adat: 121, seniPertunjukan: 101, permainanRakyat: 80,  kulinerKhas: 160, pakaianAdat: 88,  seniRupaKerajinan: 102, ceritaRakyat: 71,  bangunanTrad: 85,  bahasaAksara: 65 },
 ];
-
 
 const TREND_KEYS: { key: keyof (typeof trendBudaya)[number]; label: string; color: string }[] = [
   { key: "adat",              label: "Adat Istiadat",               color: "#60a5fa" },
@@ -78,13 +73,27 @@ const budayaPerProvinsi = [
   { prov: "Sulawesi Selatan", total: 240 },
 ];
 
+type ViewMode = "charts" | "table";
+
 export default function PremiumDashboardPage() {
   const search = useSearchParams();
   const router = useRouter();
 
   const initialMode = (search.get("mode") === "table" ? "table" : "charts") as ViewMode;
   const [mode, setMode] = useState<ViewMode>(initialMode);
-  const [range, setRange] = useState<TimeRange>("30d");
+
+  // === NEW: filter bulanan ===
+  const MONTH_LIST = trendBudaya.map((d) => d.month);        // ["Jan","Feb",...,"Des"]
+  const [endMonth, setEndMonth] = useState<string>(MONTH_LIST[MONTH_LIST.length - 1]); // default: "Des"
+  const [windowMonths, setWindowMonths] = useState<number>(12); // 3 | 6 | 12
+
+  // data yang sudah difilter sesuai window & endMonth
+  const filteredTrend = useMemo(() => {
+    const endIdx = MONTH_LIST.indexOf(endMonth);
+    if (endIdx === -1) return trendBudaya;
+    const startIdx = Math.max(0, endIdx - windowMonths + 1);
+    return trendBudaya.slice(startIdx, endIdx + 1);
+  }, [endMonth, windowMonths]);
 
   useEffect(() => {
     const m = search.get("mode");
@@ -117,14 +126,44 @@ export default function PremiumDashboardPage() {
       <div className="grid grid-cols-1 gap-6 mt-2">
         {/* Tren kategori */}
         <Card>
-          <CardHeader className="border-b border-gray-200 dark:border-gray-700">
-            <CardTitle>Tren Kategori Budaya (Bulanan)</CardTitle>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Menunjukkan kategori budaya yang lagi naik sepanjang tahun.</p>
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 dark:border-gray-700">
+            <div>
+              <CardTitle>Tren Kategori Budaya (Bulanan)</CardTitle>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Menunjukkan kategori budaya yang lagi naik sepanjang tahun.
+              </p>
+            </div>
+
+            {/* === Filter Bulanan (NEW) === */}
+            <div className="flex items-center gap-2 text-xs">
+              <label className="text-gray-600 dark:text-gray-400">Rentang</label>
+              <select
+                value={windowMonths}
+                onChange={(e) => setWindowMonths(Number(e.target.value))}
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1"
+              >
+                <option value={3}>3 bulan</option>
+                <option value={6}>6 bulan</option>
+                <option value={12}>12 bulan</option>
+              </select>
+
+              <label className="ml-3 text-gray-600 dark:text-gray-400">Sampai</label>
+              <select
+                value={endMonth}
+                onChange={(e) => setEndMonth(e.target.value)}
+                className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1"
+              >
+                {MONTH_LIST.map((m) => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
           </CardHeader>
+
           <CardContent className="pt-6">
             <div className="h-96">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendBudaya} margin={{ left: 12, right: 12 }}>
+                <LineChart data={filteredTrend} margin={{ left: 12, right: 12 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#d1d5db" />
                   <XAxis dataKey="month" tickLine={false} axisLine={false} tick={{ fill: "#6b7280", fontSize: 12 }} />
                   <YAxis tickLine={false} axisLine={false} width={60} tick={{ fill: "#6b7280", fontSize: 12 }} />
