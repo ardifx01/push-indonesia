@@ -8,7 +8,7 @@ export default function PremiumLayout({ children }: Readonly<{ children: React.R
     { href: "/premium",               label: "Overview",          icon: "Home" as const },
     { href: "/premium/analisis",   label: "Analisis",          icon: "LineChart" as const },
     { href: "/premium/data-budaya",   label: "Data Budaya",       icon: "Database" as const }, // <— NEW
-    { href: "/premium/api-docs",      label: "API Docs",          icon: "Code2" as const },
+    { href: "/reference",      label: "API Docs",          icon: "Code2" as const },
   ];
 
   return (
