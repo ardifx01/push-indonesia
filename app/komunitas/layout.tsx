@@ -2,6 +2,7 @@
 "use client";
 
 import "../globals.css";
+import { Suspense } from "react";
 import Sidebar from "@/components/sidebar";
 import ThemeToggle from "@/components/theme-toggle";
 
@@ -19,7 +20,9 @@ export default function KomunitasLayout({
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="mx-auto">
         <div className="flex">
-          <Sidebar brand="Komunitas · Budaya" items={items} />
+          <Suspense fallback={<div className="w-64 h-screen bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700" />}>
+            <Sidebar brand="Komunitas · Budaya" items={items} />
+          </Suspense>
           <main className="flex-1 h-full mx-auto">
             {/* toggle tema konsisten (kanan atas) */}
             <div className="fixed right-0 lg:flex justify-end px-4 pt-8 z-10">

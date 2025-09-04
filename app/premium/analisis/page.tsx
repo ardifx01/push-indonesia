@@ -1,7 +1,7 @@
 // app/premium/page.tsx
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import {
   CartesianGrid,
@@ -22,33 +22,33 @@ import { Card, CardHeader, CardContent, CardTitle } from "@/components/insights-
 
 /** ----- Data tren (dipakai untuk snapshot pie) ----- */
 const trendBudaya = [
-  { month: "Jan", adat: 92,  seniPertunjukan: 80,  permainanRakyat: 64,  kulinerKhas: 120, pakaianAdat: 70,  seniRupaKerajinan: 78,  ceritaRakyat: 55,  bangunanTrad: 66,  bahasaAksara: 50 },
-  { month: "Feb", adat: 104, seniPertunjukan: 87,  permainanRakyat: 70,  kulinerKhas: 130, pakaianAdat: 73,  seniRupaKerajinan: 82,  ceritaRakyat: 58,  bangunanTrad: 69,  bahasaAksara: 53 },
-  { month: "Mar", adat: 96,  seniPertunjukan: 83,  permainanRakyat: 66,  kulinerKhas: 125, pakaianAdat: 71,  seniRupaKerajinan: 79,  ceritaRakyat: 56,  bangunanTrad: 67,  bahasaAksara: 52 },
-  { month: "Apr", adat: 109, seniPertunjukan: 90,  permainanRakyat: 73,  kulinerKhas: 138, pakaianAdat: 76,  seniRupaKerajinan: 86,  ceritaRakyat: 60,  bangunanTrad: 72,  bahasaAksara: 55 },
-  { month: "Mei", adat: 101, seniPertunjukan: 85,  permainanRakyat: 68,  kulinerKhas: 132, pakaianAdat: 74,  seniRupaKerajinan: 83,  ceritaRakyat: 57,  bangunanTrad: 70,  bahasaAksara: 54 },
-  { month: "Jun", adat: 115, seniPertunjukan: 93,  permainanRakyat: 75,  kulinerKhas: 145, pakaianAdat: 79,  seniRupaKerajinan: 90,  ceritaRakyat: 63,  bangunanTrad: 76,  bahasaAksara: 58 },
-  { month: "Jul", adat: 107, seniPertunjukan: 88,  permainanRakyat: 69,  kulinerKhas: 139, pakaianAdat: 77,  seniRupaKerajinan: 87,  ceritaRakyat: 59,  bangunanTrad: 73,  bahasaAksara: 56 },
-  { month: "Agu", adat: 120, seniPertunjukan: 96,  permainanRakyat: 77,  kulinerKhas: 151, pakaianAdat: 82,  seniRupaKerajinan: 94,  ceritaRakyat: 66,  bangunanTrad: 79,  bahasaAksara: 60 },
-  { month: "Sep", adat: 111, seniPertunjukan: 90,  permainanRakyat: 71,  kulinerKhas: 142, pakaianAdat: 80,  seniRupaKerajinan: 91,  ceritaRakyat: 62,  bangunanTrad: 75,  bahasaAksara: 59 },
-  { month: "Okt", adat: 124, seniPertunjukan: 98,  permainanRakyat: 78,  kulinerKhas: 156, pakaianAdat: 85,  seniRupaKerajinan: 99,  ceritaRakyat: 69,  bangunanTrad: 82,  bahasaAksara: 63 },
-  { month: "Nov", adat: 116, seniPertunjukan: 92,  permainanRakyat: 72,  kulinerKhas: 147, pakaianAdat: 83,  seniRupaKerajinan: 95,  ceritaRakyat: 64,  bangunanTrad: 78,  bahasaAksara: 61 },
-  { month: "Des", adat: 121, seniPertunjukan: 101, permainanRakyat: 80,  kulinerKhas: 160, pakaianAdat: 88,  seniRupaKerajinan: 102, ceritaRakyat: 71,  bangunanTrad: 85,  bahasaAksara: 65 },
+  { month: "Jan", adat: 92, seniPertunjukan: 80, permainanRakyat: 64, kulinerKhas: 120, pakaianAdat: 70, seniRupaKerajinan: 78, ceritaRakyat: 55, bangunanTrad: 66, bahasaAksara: 50 },
+  { month: "Feb", adat: 104, seniPertunjukan: 87, permainanRakyat: 70, kulinerKhas: 130, pakaianAdat: 73, seniRupaKerajinan: 82, ceritaRakyat: 58, bangunanTrad: 69, bahasaAksara: 53 },
+  { month: "Mar", adat: 96, seniPertunjukan: 83, permainanRakyat: 66, kulinerKhas: 125, pakaianAdat: 71, seniRupaKerajinan: 79, ceritaRakyat: 56, bangunanTrad: 67, bahasaAksara: 52 },
+  { month: "Apr", adat: 109, seniPertunjukan: 90, permainanRakyat: 73, kulinerKhas: 138, pakaianAdat: 76, seniRupaKerajinan: 86, ceritaRakyat: 60, bangunanTrad: 72, bahasaAksara: 55 },
+  { month: "Mei", adat: 101, seniPertunjukan: 85, permainanRakyat: 68, kulinerKhas: 132, pakaianAdat: 74, seniRupaKerajinan: 83, ceritaRakyat: 57, bangunanTrad: 70, bahasaAksara: 54 },
+  { month: "Jun", adat: 115, seniPertunjukan: 93, permainanRakyat: 75, kulinerKhas: 145, pakaianAdat: 79, seniRupaKerajinan: 90, ceritaRakyat: 63, bangunanTrad: 76, bahasaAksara: 58 },
+  { month: "Jul", adat: 107, seniPertunjukan: 88, permainanRakyat: 69, kulinerKhas: 139, pakaianAdat: 77, seniRupaKerajinan: 87, ceritaRakyat: 59, bangunanTrad: 73, bahasaAksara: 56 },
+  { month: "Agu", adat: 120, seniPertunjukan: 96, permainanRakyat: 77, kulinerKhas: 151, pakaianAdat: 82, seniRupaKerajinan: 94, ceritaRakyat: 66, bangunanTrad: 79, bahasaAksara: 60 },
+  { month: "Sep", adat: 111, seniPertunjukan: 90, permainanRakyat: 71, kulinerKhas: 142, pakaianAdat: 80, seniRupaKerajinan: 91, ceritaRakyat: 62, bangunanTrad: 75, bahasaAksara: 59 },
+  { month: "Okt", adat: 124, seniPertunjukan: 98, permainanRakyat: 78, kulinerKhas: 156, pakaianAdat: 85, seniRupaKerajinan: 99, ceritaRakyat: 69, bangunanTrad: 82, bahasaAksara: 63 },
+  { month: "Nov", adat: 116, seniPertunjukan: 92, permainanRakyat: 72, kulinerKhas: 147, pakaianAdat: 83, seniRupaKerajinan: 95, ceritaRakyat: 64, bangunanTrad: 78, bahasaAksara: 61 },
+  { month: "Des", adat: 121, seniPertunjukan: 101, permainanRakyat: 80, kulinerKhas: 160, pakaianAdat: 88, seniRupaKerajinan: 102, ceritaRakyat: 71, bangunanTrad: 85, bahasaAksara: 65 },
 ];
 
 const TREND_KEYS: { key: keyof (typeof trendBudaya)[number]; label: string; color: string }[] = [
-  { key: "adat",              label: "Adat Istiadat",               color: "#60a5fa" },
-  { key: "seniPertunjukan",   label: "Seni Pertunjukan",            color: "#22c55e" },
-  { key: "permainanRakyat",   label: "Permainan Rakyat",            color: "#f59e0b" },
-  { key: "kulinerKhas",       label: "Kuliner Khas",                color: "#a855f7" },
-  { key: "pakaianAdat",       label: "Pakaian Adat",                color: "#ef4444" },
-  { key: "seniRupaKerajinan", label: "Seni Rupa & Kerajinan",       color: "#06b6d4" },
-  { key: "ceritaRakyat",      label: "Cerita Rakyat & Folklore",    color: "#84cc16" },
-  { key: "bangunanTrad",      label: "Bangunan & Arsitektur Trad.", color: "#ec4899" },
-  { key: "bahasaAksara",      label: "Bahasa & Aksara Daerah",      color: "#94a3b8" },
+  { key: "adat", label: "Adat Istiadat", color: "#60a5fa" },
+  { key: "seniPertunjukan", label: "Seni Pertunjukan", color: "#22c55e" },
+  { key: "permainanRakyat", label: "Permainan Rakyat", color: "#f59e0b" },
+  { key: "kulinerKhas", label: "Kuliner Khas", color: "#a855f7" },
+  { key: "pakaianAdat", label: "Pakaian Adat", color: "#ef4444" },
+  { key: "seniRupaKerajinan", label: "Seni Rupa & Kerajinan", color: "#06b6d4" },
+  { key: "ceritaRakyat", label: "Cerita Rakyat & Folklore", color: "#84cc16" },
+  { key: "bangunanTrad", label: "Bangunan & Arsitektur Trad.", color: "#ec4899" },
+  { key: "bahasaAksara", label: "Bahasa & Aksara Daerah", color: "#94a3b8" },
 ];
 
-const PIE_COLORS = ["#60a5fa","#22c55e","#f59e0b","#a855f7","#ef4444","#06b6d4","#84cc16","#ec4899","#94a3b8"];
+const PIE_COLORS = ["#60a5fa", "#22c55e", "#f59e0b", "#a855f7", "#ef4444", "#06b6d4", "#84cc16", "#ec4899", "#94a3b8"];
 
 const budayaPerProvinsi = [
   { prov: "Aceh", total: 184 },
@@ -75,7 +75,8 @@ const budayaPerProvinsi = [
 
 type ViewMode = "charts" | "table";
 
-export default function PremiumDashboardPage() {
+// Component that uses useSearchParams
+function PremiumDashboardContent() {
   const search = useSearchParams();
   const router = useRouter();
 
@@ -251,5 +252,14 @@ export default function PremiumDashboardPage() {
         </Card>
       </div>
     </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function PremiumDashboardPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-96"><div>Loading...</div></div>}>
+      <PremiumDashboardContent />
+    </Suspense>
   );
 }

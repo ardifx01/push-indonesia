@@ -13,7 +13,11 @@ import {
   Tooltip,
   Legend,
 } from "recharts";
-import type { TooltipProps, ValueType, NameType } from "recharts";
+import type { TooltipProps } from "recharts";
+
+// Define our own types since they're not exported in newer recharts versions
+type ValueType = string | number | Array<string | number>;
+type NameType = string | number;
 
 export type Orientation = "vertical" | "horizontal";
 export type CategoryDatum = {
@@ -24,10 +28,10 @@ export type CategoryDatum = {
 };
 
 type Props = {
-  data: CategoryDatum[];
-  orientation?: Orientation;   // default: "vertical"
-  height?: number;             // default: 320
-  showLegend?: boolean;        // default: true
+  readonly data: CategoryDatum[];
+  readonly orientation?: Orientation;   // default: "vertical"
+  readonly height?: number;             // default: 320
+  readonly showLegend?: boolean;        // default: true
 };
 
 /* ---------- hook kecil untuk deteksi tema ---------- */
@@ -44,44 +48,43 @@ function useIsDark() {
   React.useEffect(() => {
     if (typeof window === "undefined") return;
     const root = document.documentElement;
+    const obs = new MutationObserver(() => setDark(get));
+    obs.observe(root, { attributes: true, attributeFilter: ["class"] });
+
     const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    const update = () => setDark(get());
-    const mo = new MutationObserver(update);
-    mo.observe(root, { attributes: true, attributeFilter: ["class"] });
-    mql.addEventListener?.("change", update);
+    const onChange = () => setDark(get);
+    mql.addEventListener?.("change", onChange);
+
     return () => {
-      mo.disconnect();
-      mql.removeEventListener?.("change", update);
+      obs.disconnect();
+      mql.removeEventListener?.("change", onChange);
     };
   }, []);
 
   return dark;
 }
 
-/* ---------- Tooltip elegan + bertipe ---------- */
+/* ---------- Komponen Tooltip Di Luar ---------- */
 const ThemedTooltip: React.FC<TooltipProps<ValueType, NameType> & { dark: boolean }> = ({
   active,
   payload,
   label,
-  dark,
+  dark
 }) => {
   if (!active || !payload || payload.length === 0) return null;
-  const box = dark
-    ? "bg-slate-900/95 border border-slate-700 text-slate-100"
-    : "bg-white/95 border border-slate-200 text-slate-800";
 
   return (
-    <div className={`rounded-lg px-3 py-2 shadow-xl backdrop-blur-sm ${box}`}>
-      {label ? <div className="text-xs font-semibold mb-1">{String(label)}</div> : null}
+    <div className={`p-3 rounded-md border shadow-md ${dark
+        ? "bg-slate-900 border-slate-700 text-slate-100"
+        : "bg-white border-slate-200 text-slate-900"
+      }`}>
+      <p className="font-medium mb-1">{String(label)}</p>
       {payload.map((p, i) => {
         const name = String(p.name ?? "");
         const val = Number(p.value ?? 0);
-        const color =
-          ((p as any).color as string) ??
-          ((p.payload as any)?.color as string) ??
-          "#60a5fa";
+        const color = p.color || p.payload?.color || "#60a5fa";
         return (
-          <div key={i} className="flex items-center gap-2 text-xs">
+          <div key={`${name}-${i}`} className="flex items-center gap-2 text-xs">
             <span className="inline-block w-2.5 h-2.5 rounded-full" style={{ background: color }} />
             <span className={dark ? "text-slate-300" : "text-slate-600"}>{name}:</span>
             <span className="font-semibold">
@@ -102,9 +105,15 @@ export default function CategoryDistribution({
 }: Props) {
   const isDark = useIsDark();
 
-  const gridColor   = isDark ? "#2b3546" : "#e2e8f0";
-  const tickColor   = isDark ? "#9aa4b2" : "#475569";
+  const gridColor = isDark ? "#2b3546" : "#e2e8f0";
+  const tickColor = isDark ? "#9aa4b2" : "#475569";
   const legendColor = isDark ? "#9aa4b2" : "#475569";
+
+  // Create tooltip component outside of render
+  const tooltipComponent = React.useCallback(
+    (props: any) => <ThemedTooltip {...props} dark={isDark} />,
+    [isDark]
+  );
 
   if (!data || data.length === 0) {
     return (
@@ -127,8 +136,8 @@ export default function CategoryDistribution({
           >
             <defs>
               {data.map((d, i) => (
-                <linearGradient key={i} id={`hGrad-${i}`} x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%"   stopColor={d.color || "#60a5fa"} stopOpacity={0.8} />
+                <linearGradient key={`hGrad-${d.category}-${i}`} id={`hGrad-${i}`} x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor={d.color || "#60a5fa"} stopOpacity={0.8} />
                   <stop offset="100%" stopColor={d.color || "#60a5fa"} stopOpacity={1} />
                 </linearGradient>
               ))}
@@ -162,7 +171,7 @@ export default function CategoryDistribution({
             />
 
             <Bar xAxisId="sales" dataKey="sales" name="Sales" radius={[0, 8, 8, 0]} maxBarSize={24}>
-              {data.map((_, i) => <Cell key={i} fill={`url(#hGrad-${i})`} />)}
+              {data.map((d, i) => <Cell key={`cell-${d.category}-${i}`} fill={`url(#hGrad-${i})`} />)}
             </Bar>
 
             <Line
@@ -176,7 +185,7 @@ export default function CategoryDistribution({
               activeDot={{ r: 6, fill: "#22d3ee", stroke: isDark ? "#0f172a" : "#ffffff", strokeWidth: 2 }}
             />
 
-            <Tooltip content={(p) => <ThemedTooltip {...p} dark={isDark} />} />
+            <Tooltip content={tooltipComponent} />
             {showLegend && <Legend wrapperStyle={{ color: legendColor }} iconType="rect" />}
           </ComposedChart>
         </ResponsiveContainer>
@@ -191,8 +200,8 @@ export default function CategoryDistribution({
         <ComposedChart data={data} margin={{ top: 16, right: 24, bottom: 48, left: 16 }} barCategoryGap={24}>
           <defs>
             {data.map((d, i) => (
-              <linearGradient key={i} id={`vGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%"   stopColor={d.color || "#60a5fa"} stopOpacity={1} />
+              <linearGradient key={`vGrad-${d.category}-${i}`} id={`vGrad-${i}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={d.color || "#60a5fa"} stopOpacity={1} />
                 <stop offset="100%" stopColor={d.color || "#60a5fa"} stopOpacity={0.7} />
               </linearGradient>
             ))}
@@ -229,7 +238,7 @@ export default function CategoryDistribution({
           />
 
           <Bar yAxisId="left" dataKey="sales" name="Sales" radius={[8, 8, 0, 0]} maxBarSize={48}>
-            {data.map((_, i) => <Cell key={i} fill={`url(#vGrad-${i})`} />)}
+            {data.map((d, i) => <Cell key={`cell-${d.category}-${i}`} fill={`url(#vGrad-${i})`} />)}
           </Bar>
 
           <Line
@@ -243,7 +252,7 @@ export default function CategoryDistribution({
             activeDot={{ r: 7, fill: "#22d3ee", stroke: isDark ? "#0f172a" : "#ffffff", strokeWidth: 3 }}
           />
 
-          <Tooltip content={(p) => <ThemedTooltip {...p} dark={isDark} />} />
+          <Tooltip content={tooltipComponent} />
           {showLegend && <Legend wrapperStyle={{ color: legendColor }} iconType="rect" />}
         </ComposedChart>
       </ResponsiveContainer>
