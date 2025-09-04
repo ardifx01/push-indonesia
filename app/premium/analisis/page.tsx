@@ -27,18 +27,19 @@ type ViewMode = "charts" | "table";
 /** ----- Data tren (dipakai untuk snapshot pie) ----- */
 const trendBudaya = [
   { month: "Jan", adat: 92,  seniPertunjukan: 80,  permainanRakyat: 64,  kulinerKhas: 120, pakaianAdat: 70,  seniRupaKerajinan: 78,  ceritaRakyat: 55,  bangunanTrad: 66,  bahasaAksara: 50 },
-  { month: "Feb", adat: 98,  seniPertunjukan: 84,  permainanRakyat: 66,  kulinerKhas: 126, pakaianAdat: 73,  seniRupaKerajinan: 82,  ceritaRakyat: 58,  bangunanTrad: 69,  bahasaAksara: 53 },
-  { month: "Mar", adat: 104, seniPertunjukan: 88,  permainanRakyat: 69,  kulinerKhas: 133, pakaianAdat: 76,  seniRupaKerajinan: 86,  ceritaRakyat: 61,  bangunanTrad: 72,  bahasaAksara: 55 },
-  { month: "Apr", adat: 111, seniPertunjukan: 92,  permainanRakyat: 72,  kulinerKhas: 139, pakaianAdat: 79,  seniRupaKerajinan: 90,  ceritaRakyat: 64,  bangunanTrad: 75,  bahasaAksara: 58 },
-  { month: "Mei", adat: 118, seniPertunjukan: 97,  permainanRakyat: 76,  kulinerKhas: 147, pakaianAdat: 83,  seniRupaKerajinan: 95,  ceritaRakyat: 68,  bangunanTrad: 79,  bahasaAksara: 61 },
-  { month: "Jun", adat: 126, seniPertunjukan: 101, permainanRakyat: 79,  kulinerKhas: 154, pakaianAdat: 86,  seniRupaKerajinan: 99,  ceritaRakyat: 71,  bangunanTrad: 82,  bahasaAksara: 64 },
-  { month: "Jul", adat: 134, seniPertunjukan: 106, permainanRakyat: 83,  kulinerKhas: 162, pakaianAdat: 90,  seniRupaKerajinan: 104,  ceritaRakyat: 75,  bangunanTrad: 86,  bahasaAksara: 67 },
-  { month: "Agu", adat: 143, seniPertunjukan: 111, permainanRakyat: 86,  kulinerKhas: 170, pakaianAdat: 94,  seniRupaKerajinan: 109,  ceritaRakyat: 78,  bangunanTrad: 90,  bahasaAksara: 70 },
-  { month: "Sep", adat: 152, seniPertunjukan: 116, permainanRakyat: 90,  kulinerKhas: 179, pakaianAdat: 98,  seniRupaKerajinan: 114,  ceritaRakyat: 82,  bangunanTrad: 94,  bahasaAksara: 73 },
-  { month: "Okt", adat: 162, seniPertunjukan: 121, permainanRakyat: 94,  kulinerKhas: 188, pakaianAdat: 102, seniRupaKerajinan: 119,  ceritaRakyat: 86,  bangunanTrad: 98,  bahasaAksara: 76 },
-  { month: "Nov", adat: 172, seniPertunjukan: 126, permainanRakyat: 98,  kulinerKhas: 198, pakaianAdat: 106, seniRupaKerajinan: 124,  ceritaRakyat: 90,  bangunanTrad: 102,  bahasaAksara: 79 },
-  { month: "Des", adat: 183, seniPertunjukan: 132, permainanRakyat: 102, kulinerKhas: 209, pakaianAdat: 111, seniRupaKerajinan: 130, ceritaRakyat: 94,  bangunanTrad: 106, bahasaAksara: 82 },
+  { month: "Feb", adat: 104, seniPertunjukan: 87,  permainanRakyat: 70,  kulinerKhas: 130, pakaianAdat: 73,  seniRupaKerajinan: 82,  ceritaRakyat: 58,  bangunanTrad: 69,  bahasaAksara: 53 },
+  { month: "Mar", adat: 96,  seniPertunjukan: 83,  permainanRakyat: 66,  kulinerKhas: 125, pakaianAdat: 71,  seniRupaKerajinan: 79,  ceritaRakyat: 56,  bangunanTrad: 67,  bahasaAksara: 52 },
+  { month: "Apr", adat: 109, seniPertunjukan: 90,  permainanRakyat: 73,  kulinerKhas: 138, pakaianAdat: 76,  seniRupaKerajinan: 86,  ceritaRakyat: 60,  bangunanTrad: 72,  bahasaAksara: 55 },
+  { month: "Mei", adat: 101, seniPertunjukan: 85,  permainanRakyat: 68,  kulinerKhas: 132, pakaianAdat: 74,  seniRupaKerajinan: 83,  ceritaRakyat: 57,  bangunanTrad: 70,  bahasaAksara: 54 },
+  { month: "Jun", adat: 115, seniPertunjukan: 93,  permainanRakyat: 75,  kulinerKhas: 145, pakaianAdat: 79,  seniRupaKerajinan: 90,  ceritaRakyat: 63,  bangunanTrad: 76,  bahasaAksara: 58 },
+  { month: "Jul", adat: 107, seniPertunjukan: 88,  permainanRakyat: 69,  kulinerKhas: 139, pakaianAdat: 77,  seniRupaKerajinan: 87,  ceritaRakyat: 59,  bangunanTrad: 73,  bahasaAksara: 56 },
+  { month: "Agu", adat: 120, seniPertunjukan: 96,  permainanRakyat: 77,  kulinerKhas: 151, pakaianAdat: 82,  seniRupaKerajinan: 94,  ceritaRakyat: 66,  bangunanTrad: 79,  bahasaAksara: 60 },
+  { month: "Sep", adat: 111, seniPertunjukan: 90,  permainanRakyat: 71,  kulinerKhas: 142, pakaianAdat: 80,  seniRupaKerajinan: 91,  ceritaRakyat: 62,  bangunanTrad: 75,  bahasaAksara: 59 },
+  { month: "Okt", adat: 124, seniPertunjukan: 98,  permainanRakyat: 78,  kulinerKhas: 156, pakaianAdat: 85,  seniRupaKerajinan: 99,  ceritaRakyat: 69,  bangunanTrad: 82,  bahasaAksara: 63 },
+  { month: "Nov", adat: 116, seniPertunjukan: 92,  permainanRakyat: 72,  kulinerKhas: 147, pakaianAdat: 83,  seniRupaKerajinan: 95,  ceritaRakyat: 64,  bangunanTrad: 78,  bahasaAksara: 61 },
+  { month: "Des", adat: 121, seniPertunjukan: 101, permainanRakyat: 80,  kulinerKhas: 160, pakaianAdat: 88,  seniRupaKerajinan: 102, ceritaRakyat: 71,  bangunanTrad: 85,  bahasaAksara: 65 },
 ];
+
 
 const TREND_KEYS: { key: keyof (typeof trendBudaya)[number]; label: string; color: string }[] = [
   { key: "adat",              label: "Adat Istiadat",               color: "#60a5fa" },
@@ -112,39 +113,6 @@ export default function PremiumDashboardPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Toolbar */}
-      <div className="mb-4 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-sm text-gray-600 dark:text-gray-400" />
-        <div className="flex items-center gap-2">
-          <label htmlFor="range-user" className="text-xs text-gray-600 dark:text-gray-400">Rentang</label>
-          <select
-            id="range-user"
-            className="border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-md px-2 py-1 text-xs"
-            value={range}
-            onChange={(e) => setRange(e.target.value as TimeRange)}
-          >
-            <option value="7d">7 hari</option>
-            <option value="30d">30 hari</option>
-            <option value="90d">90 hari</option>
-          </select>
-
-          <div className="ml-2 flex bg-gray-100 dark:bg-gray-800 rounded-lg p-1">
-            <button
-              onClick={() => setModeAndUrl("charts")}
-              className={`px-2 py-1 rounded-md text-xs ${mode === "charts" ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-600 dark:text-gray-400"}`}
-            >
-              Charts
-            </button>
-            <button
-              onClick={() => setModeAndUrl("table")}
-              className={`px-2 py-1 rounded-md text-xs ${mode === "table" ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm" : "text-gray-600 dark:text-gray-400"}`}
-            >
-              Cards
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* Charts only */}
       <div className="grid grid-cols-1 gap-6 mt-2">
         {/* Tren kategori */}
