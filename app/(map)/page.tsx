@@ -5,7 +5,7 @@ export default async function Page() {
   return (
     <main className="min-h-dvh">
       <SmartIframe
-        src="https://indonesian-cultures.vercel.app/"
+        src="https://indonesian-cultures-lake.vercel.app/"
         title="Dashboard Indonesian Cultures"
         className="min-h-dvh w-full"
         fallback={
