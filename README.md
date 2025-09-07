@@ -5,6 +5,8 @@
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white)
 ![pnpm](https://img.shields.io/badge/pnpm-F69220?style=for-the-badge&logo=pnpm&logoColor=white)
+![Midtrans](https://img.shields.io/badge/Midtrans-FF6F61?style=for-the-badge&logo=midtrans&logoColor=white)
+![UploadThing](https://img.shields.io/badge/UploadThing-0066FF?style=for-the-badge&logo=uploadthing&logoColor=white)
 
 **PUSH** adalah platform digital interaktif yang bertujuan untuk melestarikan dan memperkenalkan kebudayaan Indonesia.
 Melalui peta digital, dokumentasi kolaboratif, mini-games edukatif, dan dashboard analitik, PUSH menghubungkan komunitas budaya, kontributor, dan pengguna untuk pengalaman yang edukatif dan interaktif.
@@ -46,6 +48,8 @@ Melalui peta digital, dokumentasi kolaboratif, mini-games edukatif, dan dashboar
 - **Database:** PostgreSQL via Neon
 - **Deployment:** Vercel
 - **Mapping & Visualization:** Leaflet.js
+- **File Upload:** UploadThing
+- **Payment Gateway:** Midtrans
 
 ---
 

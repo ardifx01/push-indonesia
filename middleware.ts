@@ -1,0 +1,43 @@
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
+
+const isProtectedRoute = createRouteMatcher([
+  "/dashboard(.*)",
+  "/premium(.*)",
+  "/komunitas(.*)",
+]);
+
+const isUserDashboardRoute = createRouteMatcher(["/users(.*)"]);
+
+export default clerkMiddleware(async (auth, req) => {
+  const url = req.nextUrl;
+  const { userId, redirectToSignIn } = await auth();
+
+  const isAuthRoute =
+    url.pathname === "/sign-in" || url.pathname === "/sign-up";
+
+  if (!userId && isProtectedRoute(req) && !isAuthRoute) {
+    return redirectToSignIn();
+  }
+
+  if (
+    userId === process.env.NEXT_PUBLIC_CLERK_ADMIN_USER_ID &&
+    isUserDashboardRoute(req)
+  ) {
+    return NextResponse.redirect(new URL("/admin", url));
+  }
+
+  if (isAuthRoute && userId) {
+    const previousUrl = req.headers.get("referer") ?? "/";
+    return NextResponse.redirect(new URL(previousUrl, req.url));
+  }
+
+  return NextResponse.next();
+});
+
+export const config = {
+  matcher: [
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    "/(api|trpc)(.*)",
+  ],
+};

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "uploadthing/tw/v4";
+@source "../node_modules/@uploadthing/react/dist";
 
 /* dark variant via class .dark di <html> */
 @custom-variant dark (&:is(.dark *));

@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Category {
+  id       String @id // slug identifier
+  category String @unique
+  sales    Float  @default(0)
+  growth   Float  @default(0)
+  items    Int    @default(0)
+  target   Float
+  color    String
+
+  // Relationship with items
+  budayaItems Item[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("categories")
+}
+
+model Item {
+  id       Int    @id @default(autoincrement())
+  category String
+  item     String
+  value    Float
+  region   String
+  growth   Float
+
+  // Relationship with category
+  categoryRef Category @relation(fields: [category], references: [category])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("items")
+}
+
+model Contribution {
+  id              Int                @id @default(autoincrement())
+  title           String
+  category        String
+  region          String
+  contributor     String
+  status          ContributionStatus @default(pending)
+  attachments     Int                @default(0)
+  description     String?            @db.Text
+  rejectionReason String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("contributions")
+}
+
+enum ContributionStatus {
+  pending
+  approved
+  rejected
+}
+
+enum Role {
+  USER
+  ADMIN
+}
