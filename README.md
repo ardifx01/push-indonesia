@@ -58,7 +58,7 @@ Melalui peta digital, dokumentasi kolaboratif, mini-games edukatif, dan dashboar
 1. **Clone repository**
 
 ```bash
-git clone https://github.com/Aswin-art/push-indonesia.git
+git clone https://github.com/ardifx01/push-indonesia.git
 cd push-indonesia
 ```
 
